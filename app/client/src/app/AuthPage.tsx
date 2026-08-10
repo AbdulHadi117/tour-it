@@ -26,11 +26,13 @@ export default function AuthPage({
   onModeChange,
   onNavigate,
   onAuthSuccess,
+  onRegistrationPending,
 }: {
   mode: AuthMode;
   onModeChange: (mode: AuthMode) => void;
   onNavigate: (page: Page) => void;
   onAuthSuccess: (user: UserProfile) => void;
+  onRegistrationPending?: (email: string) => void;
 }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -74,7 +76,13 @@ export default function AuthPage({
           password: password.trim(),
         });
 
-        // 2. Auto-login after registration
+        // 2. Show email verification screen instead of auto-login
+        if (onRegistrationPending) {
+          onRegistrationPending(email.trim());
+          return;
+        }
+
+        // Fallback: auto-login if no verification handler provided
         const userProfile = await loginUser({
           email: email.trim(),
           password: password.trim(),
@@ -263,10 +271,10 @@ export default function AuthPage({
                 </label>
                 <button
                   type="button"
-                  onClick={() => onNavigate("home")}
+                  onClick={() => onNavigate("forgot-password" as any)}
                   className="text-xs font-semibold text-[#0E8C88] hover:underline"
                 >
-                  Continue as guest
+                  Forgot password?
                 </button>
               </div>
 

@@ -1,9 +1,13 @@
 import { useMemo, useState } from "react";
-import { ArrowRight, Bell, Bookmark, Globe, LogOut, MapPin, Save, ShieldCheck, Star, UserRound } from "lucide-react";
+import { ArrowRight, Bell, Bookmark, Globe, LogOut, MapPin, Save, ShieldCheck, Star, UserRound, KeyRound, Mail as MailIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "./components/ui/avatar";
 import type { Page } from "./App";
 import type { UserProfile } from "./auth";
 import { deriveAvatarSeed } from "./auth";
+import ChangePasswordModal from "./components/ChangePasswordModal";
+import EmailSettingsCard from "./components/EmailSettingsCard";
+import UnverifiedBanner from "./components/UnverifiedBanner";
+import SessionExpiredModal from "./components/SessionExpiredModal";
 
 function SectionCard({
   title,
@@ -37,6 +41,8 @@ export default function ProfilePage({
 }) {
   const [draft, setDraft] = useState(user);
   const [saved, setSaved] = useState(false);
+  const [showChangePw, setShowChangePw] = useState(false);
+  const [showSessionExpired, setShowSessionExpired] = useState(false);
 
   const initials = useMemo(() => draft.avatarSeed || deriveAvatarSeed(draft.fullName), [draft.avatarSeed, draft.fullName]);
 
@@ -51,6 +57,21 @@ export default function ProfilePage({
   };
 
   return (
+    <>
+    {/* Unverified account banner — sits directly below nav */}
+    <UnverifiedBanner email={draft.email} />
+
+    {/* Modals */}
+    {showChangePw && <ChangePasswordModal onClose={() => setShowChangePw(false)} />}
+    {showSessionExpired && (
+      <SessionExpiredModal
+        user={{ fullName: draft.fullName, email: draft.email, avatarSeed: draft.avatarSeed }}
+        onReAuth={async () => { await new Promise((r) => setTimeout(r, 1200)); setShowSessionExpired(false); }}
+        onSwitchUser={() => { setShowSessionExpired(false); onSignOut(); }}
+        onClose={() => setShowSessionExpired(false)}
+      />
+    )}
+
     <main className="bg-[#FAF8F3] min-h-[calc(100vh-80px)] pb-12">
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-8 lg:py-12 space-y-8">
         <div className="flex flex-wrap items-center gap-2 text-xs text-[#6B7280]">
@@ -198,6 +219,23 @@ export default function ProfilePage({
                   <div className="flex items-center gap-2 text-sm font-semibold text-[#12233A]"><Globe size={15} className="text-[#0E8C88]" /> {draft.memberSince}</div>
                   <p className="mt-1 text-xs text-[#6B7280]">Member since</p>
                 </div>
+
+                {/* Change password trigger */}
+                <button
+                  onClick={() => setShowChangePw(true)}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#DDD6C7] bg-white px-5 py-3 text-sm font-bold text-[#12233A] transition-colors hover:border-[#0E8C88] hover:text-[#0E8C88]"
+                >
+                  <KeyRound size={15} /> Change Password
+                </button>
+
+                {/* Session expired demo trigger */}
+                <button
+                  onClick={() => setShowSessionExpired(true)}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#DDD6C7] bg-white px-5 py-3 text-sm font-bold text-[#6B7280] transition-colors hover:border-[#E8A33D] hover:text-[#E8A33D]"
+                >
+                  <MailIcon size={15} /> Preview: Session Expired Modal
+                </button>
+
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <button onClick={handleSave} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#12233A] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#0E8C88]">
                     <Save size={16} /> Save changes
@@ -215,7 +253,16 @@ export default function ProfilePage({
             </SectionCard>
           </div>
         </div>
+
+        {/* Email Settings & Verification card */}
+        <section>
+          <h3 className="mb-4 text-lg font-bold text-[#12233A]" style={{ fontFamily: "'Playfair Display', serif" }}>
+            Email Settings &amp; Verification
+          </h3>
+          <EmailSettingsCard currentEmail={draft.email} />
+        </section>
       </div>
     </main>
+    </>
   );
 }

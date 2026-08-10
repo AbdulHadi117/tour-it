@@ -27,6 +27,13 @@ import TripPlannerPage from "./TripPlannerPage";
 import AboutPage from "./AboutPage";
 import AuthPage from "./AuthPage";
 import ProfilePage from "./ProfilePage";
+import EmailVerificationPage from "./EmailVerificationPage";
+import EmailVerificationResultPage from "./EmailVerificationResultPage";
+import ForgotPasswordPage from "./ForgotPasswordPage";
+import PasswordResetPage from "./PasswordResetPage";
+import MagicLinkPage from "./MagicLinkPage";
+import MagicLinkProcessingPage from "./MagicLinkProcessingPage";
+import AuthStateKitPage from "./AuthStateKitPage";
 import {
   clearStoredUserProfile,
   loadStoredUserProfile,
@@ -37,7 +44,9 @@ import {
 
 // ── Types ──────────────────────────────────────────────────────────────────
 export type Page =
-  "home" | "explore" | "city" | "place" | "planner" | "about" | "auth" | "profile";
+  "home" | "explore" | "city" | "place" | "planner" | "about" | "auth" | "profile"
+  | "email-verify" | "verify-result" | "forgot-password"
+  | "reset-password" | "magic-link" | "magic-link-processing" | "auth-kit";
 
 // ── Shared Nav Links ───────────────────────────────────────────────────────
 const NAV_LINKS: { label: string; page: Page | null }[] = [
@@ -956,6 +965,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() =>
     loadStoredUserProfile(),
   );
+  const [pendingVerifyEmail, setPendingVerifyEmail] = useState("");
 
   useEffect(() => {
     if (currentUser) {
@@ -977,6 +987,11 @@ export default function App() {
 
   const handleAuthSuccess = (user: UserProfile) => {
     setCurrentUser(user);
+  };
+
+  const handleRegistrationPending = (email: string) => {
+    setPendingVerifyEmail(email);
+    navigate("email-verify");
   };
 
   const handleSignOut = () => {
@@ -1013,7 +1028,33 @@ export default function App() {
           onModeChange={setAuthMode}
           onNavigate={navigate}
           onAuthSuccess={handleAuthSuccess}
+          onRegistrationPending={handleRegistrationPending}
         />
+      )}
+      {page === "email-verify" && (
+        <EmailVerificationPage
+          email={pendingVerifyEmail}
+          onNavigate={navigate}
+          onEditEmail={() => navigate("auth")}
+        />
+      )}
+      {page === "verify-result" && (
+        <EmailVerificationResultPage onNavigate={navigate} />
+      )}
+      {page === "forgot-password" && (
+        <ForgotPasswordPage onNavigate={navigate} />
+      )}
+      {page === "reset-password" && (
+        <PasswordResetPage onNavigate={navigate} />
+      )}
+      {page === "magic-link" && (
+        <MagicLinkPage onNavigate={navigate} />
+      )}
+      {page === "magic-link-processing" && (
+        <MagicLinkProcessingPage onNavigate={navigate} />
+      )}
+      {page === "auth-kit" && (
+        <AuthStateKitPage onNavigate={navigate} />
       )}
       {page === "profile" && currentUser && (
         <ProfilePage
