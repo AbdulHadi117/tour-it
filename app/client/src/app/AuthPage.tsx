@@ -269,13 +269,22 @@ export default function AuthPage({
                   />
                   {isRegister ? "Keep my profile synced" : "Keep me signed in"}
                 </label>
-                <button
-                  type="button"
-                  onClick={() => onNavigate("forgot-password" as any)}
-                  className="text-xs font-semibold text-[#0E8C88] hover:underline"
-                >
-                  Forgot password?
-                </button>
+                <div className="flex flex-col items-end gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onNavigate("forgot-password" as any)}
+                    className="text-xs font-semibold text-[#0E8C88] hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate("magic-link" as any)}
+                    className="text-xs font-semibold text-[#0E8C88] hover:underline"
+                  >
+                    Sign in with magic link
+                  </button>
+                </div>
               </div>
 
               {error && (

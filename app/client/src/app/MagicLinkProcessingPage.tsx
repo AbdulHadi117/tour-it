@@ -1,6 +1,7 @@
-import { useState } from "react";
 import { Globe, Loader2, CheckCircle2, AlertTriangle, ArrowLeft } from "lucide-react";
 import type { Page } from "./App";
+import { useEffect, useState } from "react";
+import { otlLogin, UserProfile } from "./auth";
 
 type ProcessState = "verifying" | "success" | "expired";
 
@@ -152,96 +153,50 @@ function StateCard({
   );
 }
 
-export default function MagicLinkProcessingPage({ onNavigate }: { onNavigate: (p: Page) => void }) {
+export default function MagicLinkProcessingPage({ 
+  onNavigate,
+  onAuthSuccess 
+}: { 
+  onNavigate: (p: Page) => void,
+  onAuthSuccess: (user: UserProfile) => void 
+}) {
   const [activeState, setActiveState] = useState<ProcessState>("verifying");
 
+  useEffect(() => {
+    const processMagicLink = async () => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const token = searchParams.get("token");
+
+      if (!token) {
+        setActiveState("expired");
+        return;
+      }
+
+      try {
+        const user = await otlLogin(token);
+        onAuthSuccess(user);
+        setActiveState("success");
+      } catch (err: any) {
+        setActiveState("expired");
+      }
+    };
+    
+    processMagicLink();
+  }, [onAuthSuccess]);
+
   return (
-    <main className="min-h-[calc(100vh-80px)] bg-[#FAF8F3]">
-
-      {/* Page header */}
-      <div className="border-b border-[#DDD6C7] px-8 py-5 flex items-center justify-between">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#0E8C88]">UI State Kit</p>
-          <h1 className="mt-1 text-[#12233A]" style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.6rem", fontWeight: 700 }}>
-            Magic Link Processing — Auth States
-          </h1>
+    <main className="min-h-[calc(100vh-80px)] bg-[#FAF8F3] flex items-center justify-center p-8">
+      {activeState === "verifying" ? (
+        <div className="flex flex-col items-center gap-4 text-[#0E8C88]">
+          <Loader2 size={48} className="animate-spin" />
+          <p className="text-sm font-bold tracking-widest uppercase text-[#12233A]">Verifying your session...</p>
         </div>
-
-        {/* State switcher for interactive preview */}
-        <div className="flex items-center gap-2 rounded-full border border-[#DDD6C7] bg-white p-1">
-          {(["verifying", "success", "expired"] as ProcessState[]).map((s) => (
-            <button
-              key={s}
-              onClick={() => setActiveState(s)}
-              className="rounded-full px-3 py-1.5 text-xs font-bold capitalize transition-colors"
-              style={
-                activeState === s
-                  ? { background: "#12233A", color: "#ffffff" }
-                  : { color: "#6B7280" }
-              }
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Centered brand mark */}
-      <div className="flex justify-center pt-8">
-        <button onClick={() => onNavigate("home")} className="flex items-center gap-2 group">
-          <div className="w-7 h-7 rounded-md bg-[#0E8C88] flex items-center justify-center">
-            <Globe size={15} className="text-white" strokeWidth={2} />
-          </div>
-          <span className="text-[#12233A] font-bold text-base group-hover:text-[#0E8C88] transition-colors" style={{ fontFamily: "'Playfair Display', serif" }}>
-            TourIT
-          </span>
-        </button>
-      </div>
-
-      {/* Horizontal auto-layout — 3 cards × 40px gap */}
-      <div className="overflow-x-auto">
-        <div className="flex min-h-[600px] items-center justify-start px-10 py-14" style={{ gap: 40, minWidth: "max-content" }}>
-
-          <div className="flex flex-col items-center" style={{ flexShrink: 0 }}>
-            <span className="mb-4 rounded-full bg-[#EBF7F6] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#0E8C88]">
-              State 1 — Verifying
-            </span>
-            <StateCard state="verifying" onNavigate={onNavigate} />
-          </div>
-
-          <div className="flex flex-col items-center" style={{ flexShrink: 0 }}>
-            <span className="mb-4 rounded-full bg-[#EBF7F6] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#0E8C88]">
-              State 2 — Success
-            </span>
-            <StateCard state="success" onNavigate={onNavigate} />
-          </div>
-
-          <div className="flex flex-col items-center" style={{ flexShrink: 0 }}>
-            <span className="mb-4 rounded-full bg-[#FBE7E1] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#E15B3F]">
-              State 3 — Expired / Invalid
-            </span>
-            <StateCard state="expired" onNavigate={onNavigate} />
-          </div>
-        </div>
-      </div>
-
-      {/* Interactive single-card view */}
-      <div className="border-t border-[#DDD6C7] bg-white px-8 py-10">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#12233A]/40 mb-6 text-center">
-          Interactive Preview — click a state above to switch
-        </p>
-        <div className="flex justify-center">
-          <StateCard state={activeState} onNavigate={onNavigate} />
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes progressBar {
-          0%   { width: 0%; }
-          60%  { width: 85%; }
-          100% { width: 100%; }
-        }
-      `}</style>
+      ) : (
+        <StateCard 
+          state={activeState} 
+          onNavigate={onNavigate} 
+        />
+      )}
     </main>
   );
 }

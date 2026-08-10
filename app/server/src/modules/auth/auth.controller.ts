@@ -13,6 +13,7 @@ import {
   updatePasswordSchema,
   requestOtlSchema,
   otlLoginSchema,
+  updateProfileSchema,
 } from "./auth.validation";
 
 function requestMeta(req: Request) {
@@ -84,4 +85,10 @@ export const otlLogin = asyncHandler(async (req: Request, res: Response) => {
   const input = otlLoginSchema.parse(req.body);
   const result = await authService.loginWithOtl(input.token, requestMeta(req));
   return sendSuccess(res, result, "Signed in");
+});
+export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw AppError.unauthorized();
+  const input = updateProfileSchema.parse(req.body);
+  const user = await authService.updateProfile(req.user.id, input);
+  return sendSuccess(res, user, "Profile updated successfully");
 });

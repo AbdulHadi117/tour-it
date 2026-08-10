@@ -38,6 +38,8 @@ import {
   clearStoredUserProfile,
   loadStoredUserProfile,
   saveStoredUserProfile,
+  updateProfile,
+  logoutUser,
   type AuthMode,
   type UserProfile,
 } from "./auth";
@@ -960,7 +962,15 @@ function HomePage({
 
 // ── Root App ───────────────────────────────────────────────────────────────
 export default function App() {
-  const [page, setPage] = useState<Page>("home");
+  const [page, setPage] = useState<Page>(() => {
+    if (typeof window !== "undefined") {
+      const path = window.location.pathname;
+      if (path.startsWith("/verify-email")) return "verify-result";
+      if (path.startsWith("/reset-password")) return "reset-password";
+      if (path.startsWith("/otl")) return "magic-link-processing";
+    }
+    return "home";
+  });
   const [authMode, setAuthMode] = useState<AuthMode>("signin");
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() =>
     loadStoredUserProfile(),
@@ -994,9 +1004,9 @@ export default function App() {
     navigate("email-verify");
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    await logoutUser();
     setCurrentUser(null);
-    clearStoredUserProfile();
     navigate("home");
   };
 
@@ -1051,7 +1061,7 @@ export default function App() {
         <MagicLinkPage onNavigate={navigate} />
       )}
       {page === "magic-link-processing" && (
-        <MagicLinkProcessingPage onNavigate={navigate} />
+        <MagicLinkProcessingPage onNavigate={navigate} onAuthSuccess={handleAuthSuccess} />
       )}
       {page === "auth-kit" && (
         <AuthStateKitPage onNavigate={navigate} />
@@ -1060,7 +1070,21 @@ export default function App() {
         <ProfilePage
           user={currentUser}
           onNavigate={navigate}
-          onUpdateUser={handleAuthSuccess}
+          onUpdateUser={async (updatedProfile) => {
+            const result = await updateProfile({
+              name: updatedProfile.fullName,
+              phone: updatedProfile.phone,
+              location: updatedProfile.location,
+              bio: updatedProfile.bio,
+              travelStyle: updatedProfile.travelStyle,
+              languages: updatedProfile.languages,
+              newsletter: updatedProfile.newsletter,
+              safetyAlerts: updatedProfile.safetyAlerts,
+              themeColor: updatedProfile.themeColor,
+            });
+            setCurrentUser(result);
+            return result;
+          }}
           onSignOut={handleSignOut}
         />
       )}

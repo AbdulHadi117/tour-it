@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Globe, Mail, Loader2, CheckCircle2, ArrowLeft, Sparkles, AlertCircle } from "lucide-react";
 import type { Page } from "./App";
+import { requestOtl } from "./auth";
 
 type SendState = "idle" | "loading" | "sent";
 
@@ -8,6 +9,8 @@ export default function MagicLinkPage({ onNavigate }: { onNavigate: (p: Page) =>
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState(false);
   const [sendState, setSendState] = useState<SendState>("idle");
+
+  const [sendError, setSendError] = useState("");
 
   const validate = (val: string) => {
     const ok = val.includes("@") && val.includes(".");
@@ -19,8 +22,14 @@ export default function MagicLinkPage({ onNavigate }: { onNavigate: (p: Page) =>
     e.preventDefault();
     if (!validate(email)) return;
     setSendState("loading");
-    await new Promise((r) => setTimeout(r, 1600));
-    setSendState("sent");
+    setSendError("");
+    try {
+      await requestOtl(email);
+      setSendState("sent");
+    } catch (err: any) {
+      setSendError(err.message || "Failed to send magic link");
+      setSendState("idle");
+    }
   };
 
   return (
@@ -160,6 +169,12 @@ export default function MagicLinkPage({ onNavigate }: { onNavigate: (p: Page) =>
                 <><Mail size={15} /> Email Me a Sign-In Link</>
               )}
             </button>
+
+            {sendError && (
+              <p className="flex items-center gap-1.5 text-xs font-medium text-[#E15B3F]">
+                <AlertCircle size={11} /> {sendError}
+              </p>
+            )}
 
             {/* Success toast — collapsible */}
             {sendState === "sent" && (

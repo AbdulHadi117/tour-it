@@ -25,6 +25,9 @@ router.post("/verify-email", emailVerificationRateLimiter, controller.verifyEmai
 // Requires a valid session AND a verified email.
 router.patch("/update-password", requireAuth, requireVerified, controller.updatePassword);
 
+// Profile update (requires session, but not necessarily verified email yet depending on rules, let's just require auth)
+router.patch("/profile", requireAuth, controller.updateProfile);
+
 // Password reset (public — user may be locked out)
 router.post("/forgot-password", passwordResetRateLimiter, controller.forgotPassword);
 router.post("/reset-password", passwordResetRateLimiter, controller.resetPassword);

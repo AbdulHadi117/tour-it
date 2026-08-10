@@ -1,7 +1,9 @@
-import { CheckCircle2, AlertTriangle, Info, ArrowLeft } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Info, ArrowLeft, Loader2 } from "lucide-react";
 import type { Page } from "./App";
+import { useEffect, useState } from "react";
+import { verifyEmail } from "./auth";
 
-type VerifyState = "success" | "expired" | "already-verified";
+type VerifyState = "loading" | "success" | "expired" | "already-verified" | "error";
 
 function StateCard({
   state,
@@ -40,9 +42,18 @@ function StateCard({
       badge: { label: "Active", bg: "#FEF3E2", text: "#E8A33D" },
       topAccent: "#E8A33D",
     },
+    error: {
+      iconBg: "#E15B3F",
+      Icon: AlertTriangle,
+      heading: "Verification Error",
+      subtitle:
+        "There was a problem verifying your email. Please try again or request a new link.",
+      badge: { label: "Error", bg: "#FBE7E1", text: "#E15B3F" },
+      topAccent: "#E15B3F",
+    },
   };
 
-  const c = configs[state];
+  const c = configs[state as Exclude<VerifyState, "loading">];
   const Icon = c.Icon;
 
   return (
@@ -130,6 +141,23 @@ function StateCard({
           </button>
         )}
 
+        {state === "error" && (
+          <div className="flex w-full flex-col gap-3">
+             <button
+              onClick={() => onNavigate("email-verify")}
+              className="w-full rounded-2xl bg-[#12233A] px-5 py-3.5 text-sm font-bold text-white transition-colors hover:bg-[#1a3150]"
+            >
+              Request New Link
+            </button>
+            <button
+              onClick={() => onNavigate("auth")}
+              className="w-full rounded-2xl border border-[rgba(18,35,58,0.2)] bg-transparent px-5 py-3.5 text-sm font-bold text-[#12233A] transition-colors hover:bg-[#FAF8F3]"
+            >
+              Sign In to Tour-It
+            </button>
+          </div>
+        )}
+
         {/* Footer hint */}
         <p className="text-[10px] text-[#6B7280]/60 uppercase tracking-widest font-semibold">
           Tour-It · Pakistan Travel Discovery
@@ -144,58 +172,49 @@ export default function EmailVerificationResultPage({
 }: {
   onNavigate: (page: Page) => void;
 }) {
+  const [state, setState] = useState<VerifyState>("loading");
+
+  useEffect(() => {
+    const processVerification = async () => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const token = searchParams.get("token");
+
+      if (!token) {
+        setState("error");
+        return;
+      }
+
+      try {
+        await verifyEmail(token);
+        setState("success");
+      } catch (err: any) {
+        if (err.message && err.message.toLowerCase().includes("expired")) {
+          setState("expired");
+        } else if (err.message && err.message.toLowerCase().includes("already")) {
+          setState("already-verified");
+        } else {
+          setState("error");
+        }
+      }
+    };
+    
+    processVerification();
+  }, []);
+
   return (
-    <main className="min-h-[calc(100vh-80px)] bg-[#FAF8F3]">
-      {/* Page header */}
-      <div className="border-b border-[#DDD6C7] bg-[#FAF8F3] px-8 py-6">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#0E8C88]">
-          UI State Library
-        </p>
-        <h1
-          className="mt-1 text-[#12233A]"
-          style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: "1.75rem",
-            fontWeight: 700,
-          }}
-        >
-          Email Verification — Result States
-        </h1>
-        <p className="mt-1 text-sm text-[#6B7280]">
-          Three card variants displayed side-by-side · 32px horizontal gap · 520px each
-        </p>
-      </div>
-
-      {/* Horizontal auto-layout — 3 cards × 32px gap */}
-      <div className="flex min-h-[calc(100vh-80px-89px)] items-center justify-start px-10 py-16 overflow-x-auto">
-        <div className="flex items-start" style={{ gap: 32 }}>
-          {/* Labels above cards */}
-          <div className="flex flex-col items-center" style={{ width: 520, flexShrink: 0 }}>
-            <span className="mb-4 rounded-full bg-[#EBF7F6] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#0E8C88]">
-              State 1 — Success
-            </span>
-            <StateCard state="success" onNavigate={onNavigate} />
-          </div>
-
-          <div className="flex flex-col items-center" style={{ width: 520, flexShrink: 0 }}>
-            <span className="mb-4 rounded-full bg-[#FBE7E1] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#E15B3F]">
-              State 2 — Expired / Invalid
-            </span>
-            <StateCard
-              state="expired"
-              onNavigate={onNavigate}
-              onResend={() => onNavigate("email-verify")}
-            />
-          </div>
-
-          <div className="flex flex-col items-center" style={{ width: 520, flexShrink: 0 }}>
-            <span className="mb-4 rounded-full bg-[#FEF3E2] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#E8A33D]">
-              State 3 — Already Verified
-            </span>
-            <StateCard state="already-verified" onNavigate={onNavigate} />
-          </div>
+    <main className="min-h-[calc(100vh-80px)] bg-[#FAF8F3] flex items-center justify-center p-8">
+      {state === "loading" ? (
+        <div className="flex flex-col items-center gap-4 text-[#0E8C88]">
+          <Loader2 size={48} className="animate-spin" />
+          <p className="text-sm font-bold tracking-widest uppercase text-[#12233A]">Verifying your email...</p>
         </div>
-      </div>
+      ) : (
+        <StateCard 
+          state={state} 
+          onNavigate={onNavigate} 
+          onResend={() => onNavigate("email-verify")} 
+        />
+      )}
     </main>
   );
 }

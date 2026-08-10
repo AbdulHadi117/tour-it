@@ -12,7 +12,7 @@ import {
 import { env } from "../../config/env";
 import { sendEmail } from "../../utils/mailer";
 import { UserRow, SafeUser, toSafeUser } from "./auth.types";
-import { RegisterInput, LoginInput } from "./auth.validation";
+import { RegisterInput, LoginInput, UpdateProfileInput } from "./auth.validation";
 
 interface RequestMeta {
   userAgent?: string;
@@ -196,6 +196,74 @@ export async function getMe(userId: string): Promise<SafeUser> {
   if (!user) throw AppError.notFound("User not found");
   const roles = await getRolesForUser(user.id);
   return toSafeUser(user, roles);
+}
+
+// ---------------------------------------------------------------------------
+// Profile management
+// ---------------------------------------------------------------------------
+
+export async function updateProfile(userId: string, input: UpdateProfileInput): Promise<SafeUser> {
+  const user = await queryOne<UserRow>(`SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL`, [userId]);
+  if (!user) throw AppError.notFound("User not found");
+
+  const fields = [];
+  const values = [];
+  let i = 1;
+
+  if (input.name !== undefined) {
+    fields.push(`name = $${i++}`);
+    values.push(input.name);
+  }
+  if (input.phone !== undefined) {
+    fields.push(`phone = $${i++}`);
+    values.push(input.phone);
+  }
+  if (input.location !== undefined) {
+    fields.push(`location = $${i++}`);
+    values.push(input.location);
+  }
+  if (input.bio !== undefined) {
+    fields.push(`bio = $${i++}`);
+    values.push(input.bio);
+  }
+  if (input.travelStyle !== undefined) {
+    fields.push(`travel_style = $${i++}`);
+    values.push(input.travelStyle);
+  }
+  if (input.languages !== undefined) {
+    fields.push(`languages = $${i++}`);
+    // Convert array to jsonb string
+    values.push(JSON.stringify(input.languages));
+  }
+  if (input.newsletter !== undefined) {
+    fields.push(`newsletter = $${i++}`);
+    values.push(input.newsletter);
+  }
+  if (input.safetyAlerts !== undefined) {
+    fields.push(`safety_alerts = $${i++}`);
+    values.push(input.safetyAlerts);
+  }
+  if (input.themeColor !== undefined) {
+    fields.push(`theme_color = $${i++}`);
+    values.push(input.themeColor);
+  }
+
+  if (fields.length === 0) {
+    const roles = await getRolesForUser(user.id);
+    return toSafeUser(user, roles);
+  }
+
+  fields.push(`updated_at = now()`);
+  values.push(userId);
+
+  const updated = await queryOne<UserRow>(
+    `UPDATE users SET ${fields.join(", ")} WHERE id = $${i} RETURNING *`,
+    values,
+  );
+  if (!updated) throw AppError.notFound("User not found");
+
+  const roles = await getRolesForUser(updated.id);
+  return toSafeUser(updated, roles);
 }
 
 // ---------------------------------------------------------------------------

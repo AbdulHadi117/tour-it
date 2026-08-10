@@ -50,4 +50,15 @@ export const otlLoginSchema = z.object({
   token: z.string().min(1, "token is required"),
 });
 export type OtlLoginInput = z.infer<typeof otlLoginSchema>;
-
+export const updateProfileSchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters").max(120).optional(),
+  phone: z.string().optional(),
+  location: z.string().optional(),
+  bio: z.string().optional(),
+  travelStyle: z.string().optional(),
+  languages: z.array(z.string()).optional(),
+  newsletter: z.boolean().optional(),
+  safetyAlerts: z.boolean().optional(),
+  themeColor: z.string().optional(),
+});
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

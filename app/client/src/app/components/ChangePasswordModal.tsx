@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X, Eye, EyeOff, Check, Loader2, CheckCircle2, ShieldCheck } from "lucide-react";
+import { updatePassword } from "../auth";
 
 interface Rule {
   label: string;
@@ -24,14 +25,22 @@ export default function ChangePasswordModal({ onClose }: { onClose: () => void }
   const [showConfirm, setShowConfirm] = useState(false);
   const [state, setState]             = useState<ModalState>("idle");
 
+  const [errorMsg, setErrorMsg]       = useState("");
+
   const allValid = RULES.every((r) => r.test(newPw, confirm)) && current.length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!allValid) return;
     setState("loading");
-    await new Promise((r) => setTimeout(r, 1600));
-    setState("success");
+    setErrorMsg("");
+    try {
+      await updatePassword({ currentPassword: current, newPassword: newPw });
+      setState("success");
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to update password");
+      setState("idle");
+    }
   };
 
   return (
@@ -154,6 +163,12 @@ export default function ChangePasswordModal({ onClose }: { onClose: () => void }
 
           {/* Divider */}
           <div className="border-t border-[#DDD6C7]" />
+
+          {errorMsg && (
+            <p className="rounded-2xl border border-[#E15B3F]/20 bg-[#FBE7E1] px-4 py-3 text-sm text-[#E15B3F]">
+              {errorMsg}
+            </p>
+          )}
 
           {/* Action buttons row */}
           <div className="flex gap-3">

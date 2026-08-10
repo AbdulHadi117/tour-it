@@ -44,16 +44,28 @@ export default function ProfilePage({
   const [showChangePw, setShowChangePw] = useState(false);
   const [showSessionExpired, setShowSessionExpired] = useState(false);
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
   const initials = useMemo(() => draft.avatarSeed || deriveAvatarSeed(draft.fullName), [draft.avatarSeed, draft.fullName]);
 
-  const handleSave = () => {
-    onUpdateUser({
-      ...draft,
-      avatarSeed: deriveAvatarSeed(draft.fullName),
-      languages: draft.languages.filter(Boolean),
-    });
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1800);
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSaveError("");
+    try {
+      const updatedUser = await onUpdateUser({
+        ...draft,
+        avatarSeed: deriveAvatarSeed(draft.fullName),
+        languages: draft.languages.filter(Boolean),
+      });
+      setDraft(updatedUser);
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 2000);
+    } catch (err: any) {
+      setSaveError(err.message || "Failed to save profile");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -109,10 +121,8 @@ export default function ProfilePage({
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
-                    { label: "Trips planned", value: draft.tripsPlanned.toString() },
-                    { label: "Wishlist items", value: draft.wishlistCount.toString() },
                     { label: "Member since", value: draft.memberSince },
-                    { label: "Languages", value: draft.languages.join(" / ") },
+                    { label: "Languages", value: draft.languages.length > 0 ? draft.languages.join(" / ") : "None specified" },
                   ].map((item) => (
                     <div key={item.label} className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3 backdrop-blur-sm">
                       <p className="text-xs uppercase tracking-widest text-white/45">{item.label}</p>
@@ -237,16 +247,21 @@ export default function ProfilePage({
                 </button>
 
                 <div className="flex flex-col gap-3 sm:flex-row">
-                  <button onClick={handleSave} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#12233A] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#0E8C88]">
-                    <Save size={16} /> Save changes
+                  <button onClick={handleSave} disabled={isSaving} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#12233A] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#0E8C88] disabled:opacity-50">
+                    <Save size={16} /> {isSaving ? "Saving..." : "Save changes"}
                   </button>
                   <button onClick={onSignOut} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[rgba(225,91,63,0.2)] bg-[#FBE7E1] px-5 py-3 text-sm font-bold text-[#E15B3F] transition-colors hover:bg-[#f8d9d0]">
                     <LogOut size={16} /> Sign out
                   </button>
                 </div>
+                {saveError && (
+                  <p className="rounded-2xl border border-red-500/20 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                    {saveError}
+                  </p>
+                )}
                 {saved && (
                   <p className="rounded-2xl border border-[#0E8C88]/20 bg-[#EBF7F6] px-4 py-3 text-sm font-medium text-[#0E8C88]">
-                    Profile saved locally.
+                    Profile updated successfully.
                   </p>
                 )}
               </div>

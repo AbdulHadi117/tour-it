@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Globe, Mail, Loader2, CheckCircle2, ArrowLeft, AlertCircle } from "lucide-react";
 import type { Page } from "./App";
+import { requestPasswordReset } from "./auth";
 
 type ButtonState = "default" | "loading" | "done";
 
@@ -14,6 +15,8 @@ export default function ForgotPasswordPage({
   const [btnState, setBtnState] = useState<ButtonState>("default");
   const [showSuccess, setShowSuccess] = useState(false);
 
+  const [errorMsg, setErrorMsg] = useState("");
+
   const validate = (val: string) => {
     const ok = val.includes("@") && val.includes(".");
     setEmailError(!ok);
@@ -25,9 +28,15 @@ export default function ForgotPasswordPage({
     if (!validate(email)) return;
     setBtnState("loading");
     setShowSuccess(false);
-    await new Promise((r) => setTimeout(r, 1600));
-    setBtnState("done");
-    setShowSuccess(true);
+    setErrorMsg("");
+    try {
+      await requestPasswordReset(email);
+      setBtnState("done");
+      setShowSuccess(true);
+    } catch (err: any) {
+      setBtnState("default");
+      setErrorMsg(err.message || "Failed to send reset link");
+    }
   };
 
   return (
@@ -235,6 +244,13 @@ export default function ForgotPasswordPage({
                 "Send Reset Link"
               )}
             </button>
+
+            {errorMsg && (
+              <p className="flex items-center gap-1.5 text-xs font-medium text-[#E15B3F]">
+                <AlertCircle size={12} />
+                {errorMsg}
+              </p>
+            )}
 
             {/* Success card — collapsible, appears after submit */}
             {showSuccess && (

@@ -12,6 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import type { Page } from "./App";
+import { resetPassword } from "./auth";
 
 type FormState = "default" | "loading" | "success" | "expired";
 
@@ -107,14 +108,31 @@ export default function PasswordResetPage({ onNavigate }: { onNavigate: (p: Page
   const [showConfirm, setShowConfirm] = useState(false);
   const [formState, setFormState] = useState<FormState>("default");
 
+  const [errorMsg, setErrorMsg] = useState("");
+
   const allValid = RULES.every((r) => r.test(pw, confirm));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!allValid) return;
+    
+    const searchParams = new URLSearchParams(window.location.search);
+    const token = searchParams.get("token");
+
+    if (!token) {
+      setFormState("expired");
+      return;
+    }
+
     setFormState("loading");
-    await new Promise((r) => setTimeout(r, 1800));
-    setFormState("success");
+    setErrorMsg("");
+    try {
+      await resetPassword(token, pw);
+      setFormState("success");
+    } catch (err: any) {
+      setFormState("expired");
+      setErrorMsg(err.message || "Failed to reset password");
+    }
   };
 
   return (
@@ -258,6 +276,13 @@ export default function PasswordResetPage({ onNavigate }: { onNavigate: (p: Page
                 <><Loader2 size={16} className="animate-spin" /> Resetting…</>
               ) : "Reset Password"}
             </button>
+
+            {errorMsg && formState !== "expired" && (
+              <p className="flex items-center gap-1.5 text-xs font-medium text-[#E15B3F]">
+                <AlertTriangle size={12} />
+                {errorMsg}
+              </p>
+            )}
 
             <div className="flex justify-center pt-1">
               <button type="button" onClick={() => onNavigate("auth")} className="flex items-center gap-1.5 text-sm font-semibold text-[#12233A] opacity-50 hover:opacity-90 transition-opacity">
