@@ -9,6 +9,10 @@ import {
   refreshSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  verifyEmailSchema,
+  updatePasswordSchema,
+  requestOtlSchema,
+  otlLoginSchema,
 } from "./auth.validation";
 
 function requestMeta(req: Request) {
@@ -18,7 +22,7 @@ function requestMeta(req: Request) {
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const input = registerSchema.parse(req.body);
   const user = await authService.registerUser(input);
-  return sendSuccess(res, user, "Account created", 201);
+  return sendSuccess(res, user, "Account created — please check your email to verify your address", 201);
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
@@ -55,4 +59,29 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
   const input = resetPasswordSchema.parse(req.body);
   await authService.resetPassword(input.token, input.newPassword);
   return sendSuccess(res, null, "Password updated — sign in with your new password");
+});
+
+export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+  const input = verifyEmailSchema.parse(req.body);
+  await authService.verifyEmail(input.token);
+  return sendSuccess(res, null, "Email verified successfully");
+});
+
+export const updatePassword = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw AppError.unauthorized();
+  const input = updatePasswordSchema.parse(req.body);
+  await authService.updatePassword(req.user.id, input.currentPassword, input.newPassword);
+  return sendSuccess(res, null, "Password updated — you have been signed out of all other devices");
+});
+
+export const requestOtl = asyncHandler(async (req: Request, res: Response) => {
+  const input = requestOtlSchema.parse(req.body);
+  await authService.requestOtl(input.email);
+  return sendSuccess(res, null, "If that email is registered, a login link has been sent");
+});
+
+export const otlLogin = asyncHandler(async (req: Request, res: Response) => {
+  const input = otlLoginSchema.parse(req.body);
+  const result = await authService.loginWithOtl(input.token, requestMeta(req));
+  return sendSuccess(res, result, "Signed in");
 });

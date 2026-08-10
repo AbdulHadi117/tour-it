@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { verifyAccessToken } from "../utils/jwt";
 import { AppError } from "../utils/AppError";
+import { queryOne } from "../config/db";
 
 export interface AuthenticatedUser {
   id: string;
@@ -53,4 +54,29 @@ export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
     // Invalid/expired token on an optional route — proceed as anonymous.
   }
   return next();
+}
+
+// Requires that the authenticated user has a verified email address.
+// Must always be stacked AFTER requireAuth — it reads req.user.
+// Exceptions: GET /auth/me and POST /auth/verify-email (users need these
+// to check their status and submit a verification token while still unverified).
+export async function requireVerified(req: Request, _res: Response, next: NextFunction) {
+  if (!req.user) return next(AppError.unauthorized());
+
+  try {
+    const row = await queryOne<{ email_verified_at: Date | null }>(
+      `SELECT email_verified_at FROM users WHERE id = $1 AND deleted_at IS NULL`,
+      [req.user.id],
+    );
+
+    if (!row || !row.email_verified_at) {
+      return next(
+        new AppError("Please verify your email address before accessing this resource", 403),
+      );
+    }
+
+    return next();
+  } catch (err) {
+    return next(err);
+  }
 }

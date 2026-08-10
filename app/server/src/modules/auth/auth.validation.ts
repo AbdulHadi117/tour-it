@@ -29,3 +29,25 @@ export const resetPasswordSchema = z.object({
   newPassword: z.string().min(6, "Password must be at least 6 characters").max(128),
 });
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+export const verifyEmailSchema = z.object({
+  token: z.string().min(1, "token is required"),
+});
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+
+export const updatePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "currentPassword is required"),
+  newPassword: z.string().min(6, "Password must be at least 6 characters").max(128),
+});
+export type UpdatePasswordInput = z.infer<typeof updatePasswordSchema>;
+
+export const requestOtlSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email address"),
+});
+export type RequestOtlInput = z.infer<typeof requestOtlSchema>;
+
+export const otlLoginSchema = z.object({
+  token: z.string().min(1, "token is required"),
+});
+export type OtlLoginInput = z.infer<typeof otlLoginSchema>;
+

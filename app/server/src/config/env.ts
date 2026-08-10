@@ -13,6 +13,14 @@ const envSchema = z.object({
   ACCESS_TOKEN_TTL: z.string().default("15m"),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
   RESET_TOKEN_TTL_MINUTES: z.coerce.number().int().positive().default(30),
+  // Resend — optional in development (falls back to console logging)
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().default("noreply@example.com"),
+  // Base URL used to build clickable links inside emails
+  APP_BASE_URL: z.string().default("http://localhost:5173"),
+  // Token TTLs
+  EMAIL_VERIFICATION_TTL_MINUTES: z.coerce.number().int().positive().default(1440), // 24 h
+  OTL_TOKEN_TTL_MINUTES: z.coerce.number().int().positive().default(15),
 });
 
 const parsed = envSchema.safeParse(process.env);
