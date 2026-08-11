@@ -71,7 +71,7 @@ export default function ProfilePage({
   return (
     <>
     {/* Unverified account banner — sits directly below nav */}
-    <UnverifiedBanner email={draft.email} />
+    {!user.emailVerifiedAt && <UnverifiedBanner email={user.email} />}
 
     {/* Modals */}
     {showChangePw && <ChangePasswordModal onClose={() => setShowChangePw(false)} />}

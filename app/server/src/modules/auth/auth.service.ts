@@ -54,6 +54,11 @@ async function issueTokenPair(userId: string, roles: string[], meta: RequestMeta
 // ---------------------------------------------------------------------------
 
 export async function sendVerificationEmail(userId: string, email: string): Promise<void> {
+  await query(
+    `UPDATE email_verification_tokens SET used_at = now() WHERE user_id = $1 AND used_at IS NULL`,
+    [userId],
+  );
+
   const token = randomOpaqueToken();
   const expiresAt = new Date(Date.now() + env.EMAIL_VERIFICATION_TTL_MINUTES * 60 * 1000);
 
@@ -88,6 +93,35 @@ export async function verifyEmail(token: string): Promise<void> {
   await query(`UPDATE email_verification_tokens SET used_at = now() WHERE id = $1`, [row.id]);
 }
 
+export async function resendVerificationEmail(email: string): Promise<void> {
+  const user = await queryOne<UserRow>(
+    `SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL`,
+    [email],
+  );
+
+  // Resolve the same way whether or not the email exists.
+  if (!user) return;
+
+  // Already verified users do not need another verification email.
+  if (user.email_verified_at) return;
+
+  await sendVerificationEmail(user.id, user.email);
+}
+
+export async function resendVerificationForCurrentUser(userId: string): Promise<void> {
+  const user = await queryOne<UserRow>(
+    `SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL`,
+    [userId],
+  );
+  if (!user) throw AppError.notFound("User not found");
+
+  if (user.email_verified_at) {
+    throw AppError.badRequest("Email is already verified");
+  }
+
+  await sendVerificationEmail(user.id, user.email);
+}
+
 // ---------------------------------------------------------------------------
 // Register & Login
 // ---------------------------------------------------------------------------
@@ -103,8 +137,8 @@ export async function registerUser(input: RegisterInput): Promise<SafeUser> {
 
   const passwordHash = await hashPassword(input.password);
   const user = await queryOne<UserRow>(
-    `INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING *`,
-    [input.name, input.email, passwordHash],
+    `INSERT INTO users (name, email, password_hash, phone, location) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+    [input.name, input.email, passwordHash, input.phone ?? null, input.location ?? null],
   );
   if (!user) throw new AppError("Could not create account", 500);
 
@@ -276,6 +310,11 @@ export async function requestPasswordReset(email: string): Promise<void> {
   // be usable to enumerate registered accounts.
   if (!user) return;
 
+  await query(
+    `UPDATE password_reset_tokens SET used_at = now() WHERE user_id = $1 AND used_at IS NULL`,
+    [user.id],
+  );
+
   const token = randomOpaqueToken();
   const expiresAt = new Date(Date.now() + env.RESET_TOKEN_TTL_MINUTES * 60 * 1000);
 
@@ -348,6 +387,8 @@ export async function requestOtl(email: string): Promise<void> {
   );
   // Resolve silently if not found — must not enumerate registered emails.
   if (!user) return;
+
+  await query(`UPDATE otl_tokens SET used_at = now() WHERE user_id = $1 AND used_at IS NULL`, [user.id]);
 
   const token = randomOpaqueToken();
   const expiresAt = new Date(Date.now() + env.OTL_TOKEN_TTL_MINUTES * 60 * 1000);

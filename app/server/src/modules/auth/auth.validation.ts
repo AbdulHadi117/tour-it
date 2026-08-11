@@ -1,10 +1,12 @@
 import { z } from "zod";
 
-// Matches what AuthPage.tsx already sends: { name, email, password }
+// Matches what AuthPage.tsx sends during registration.
 export const registerSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
   email: z.string().trim().toLowerCase().email("Enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters").max(128),
+  phone: z.string().optional(),
+  location: z.string().optional(),
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
 
@@ -34,6 +36,11 @@ export const verifyEmailSchema = z.object({
   token: z.string().min(1, "token is required"),
 });
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+
+export const resendVerificationEmailSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email address"),
+});
+export type ResendVerificationEmailInput = z.infer<typeof resendVerificationEmailSchema>;
 
 export const updatePasswordSchema = z.object({
   currentPassword: z.string().min(1, "currentPassword is required"),

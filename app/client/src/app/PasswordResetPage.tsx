@@ -80,7 +80,7 @@ function ExpiredCard({ onNavigate }: { onNavigate: (p: Page) => void }) {
         Reset Link Expired
       </h3>
       <p className="text-[#6B7280] text-sm text-center leading-6 mb-6">
-        This password reset link is invalid or has expired. Reset links are valid for 24 hours — please request a new one.
+        This password reset link is invalid or has expired. Reset links are valid for 30 minutes — please request a new one.
       </p>
       <div className="w-full border-t border-[#DDD6C7] mb-6" />
       <div className="flex w-full flex-col gap-3">
@@ -182,7 +182,7 @@ export default function PasswordResetPage({ onNavigate }: { onNavigate: (p: Page
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            {[{ v: "256-bit", l: "Encryption" }, { v: "24 hrs", l: "Link validity" }, { v: "100%", l: "Data secure" }].map((s) => (
+            {[{ v: "256-bit", l: "Encryption" }, { v: "30 min", l: "Link validity" }, { v: "100%", l: "Data secure" }].map((s) => (
               <div key={s.l} className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3 backdrop-blur-sm">
                 <p className="text-lg font-black text-white" style={{ fontFamily: "'Playfair Display', serif" }}>{s.v}</p>
                 <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest text-white/45">{s.l}</p>

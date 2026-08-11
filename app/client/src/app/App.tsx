@@ -36,7 +36,8 @@ import MagicLinkProcessingPage from "./MagicLinkProcessingPage";
 import AuthStateKitPage from "./AuthStateKitPage";
 import {
   clearStoredUserProfile,
-  loadStoredUserProfile,
+  getAuthToken,
+  getMe,
   saveStoredUserProfile,
   updateProfile,
   logoutUser,
@@ -972,18 +973,44 @@ export default function App() {
     return "home";
   });
   const [authMode, setAuthMode] = useState<AuthMode>("signin");
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() =>
-    loadStoredUserProfile(),
-  );
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
   const [pendingVerifyEmail, setPendingVerifyEmail] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+
+    const restoreSession = async () => {
+      if (!getAuthToken()) {
+        if (!cancelled) setIsRestoringSession(false);
+        return;
+      }
+
+      try {
+        const user = await getMe();
+        if (!cancelled) setCurrentUser(user);
+      } catch {
+        if (!cancelled) setCurrentUser(null);
+      } finally {
+        if (!cancelled) setIsRestoringSession(false);
+      }
+    };
+
+    restoreSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isRestoringSession) return;
     if (currentUser) {
       saveStoredUserProfile(currentUser);
     } else {
       clearStoredUserProfile();
     }
-  }, [currentUser]);
+  }, [currentUser, isRestoringSession]);
 
   const navigate = (p: Page) => {
     setPage(p);
@@ -1045,7 +1072,10 @@ export default function App() {
         <EmailVerificationPage
           email={pendingVerifyEmail}
           onNavigate={navigate}
-          onEditEmail={() => navigate("auth")}
+          onEditEmail={() => {
+            setAuthMode("register");
+            navigate("auth");
+          }}
         />
       )}
       {page === "verify-result" && (
@@ -1088,12 +1118,13 @@ export default function App() {
           onSignOut={handleSignOut}
         />
       )}
-      {page === "profile" && !currentUser && (
+      {page === "profile" && !currentUser && !isRestoringSession && (
         <AuthPage
           mode="signin"
           onModeChange={setAuthMode}
           onNavigate={navigate}
           onAuthSuccess={handleAuthSuccess}
+          onRegistrationPending={handleRegistrationPending}
         />
       )}
     </div>

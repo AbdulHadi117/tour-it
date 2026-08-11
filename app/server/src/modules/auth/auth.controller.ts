@@ -10,6 +10,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   verifyEmailSchema,
+  resendVerificationEmailSchema,
   updatePasswordSchema,
   requestOtlSchema,
   otlLoginSchema,
@@ -66,6 +67,18 @@ export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
   const input = verifyEmailSchema.parse(req.body);
   await authService.verifyEmail(input.token);
   return sendSuccess(res, null, "Email verified successfully");
+});
+
+export const resendVerificationEmail = asyncHandler(async (req: Request, res: Response) => {
+  const input = resendVerificationEmailSchema.parse(req.body);
+  await authService.resendVerificationEmail(input.email);
+  return sendSuccess(res, null, "If that email is registered, a verification email has been sent");
+});
+
+export const resendVerificationForCurrentUser = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw AppError.unauthorized();
+  await authService.resendVerificationForCurrentUser(req.user.id);
+  return sendSuccess(res, null, "Verification email sent");
 });
 
 export const updatePassword = asyncHandler(async (req: Request, res: Response) => {

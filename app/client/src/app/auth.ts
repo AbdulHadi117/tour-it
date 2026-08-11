@@ -43,6 +43,26 @@ function getInitials(name: string) {
     .join("");
 }
 
+function toUserProfile(user: any): UserProfile {
+  return {
+    id: user.id,
+    fullName: user.name || user.email.split("@")[0],
+    email: user.email,
+    phone: user.phone || "",
+    location: user.location || "",
+    bio: user.bio || "",
+    travelStyle: user.travelStyle || "Balanced explorer",
+    languages: user.languages || [],
+    newsletter: user.newsletter ?? true,
+    safetyAlerts: user.safetyAlerts ?? true,
+    memberSince: formatMemberSince(new Date(user.createdAt)),
+    avatarSeed: getInitials(user.name || user.email),
+    themeColor: user.themeColor || "#0E8C88",
+    emailVerifiedAt: user.emailVerifiedAt || null,
+    createdAt: user.createdAt,
+  };
+}
+
 export function deriveAvatarSeed(name: string) {
   return getInitials(name);
 }
@@ -178,7 +198,13 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   return response;
 }
 
-export async function registerUser(data: { name: string; email: string; password: string }) {
+export async function registerUser(data: {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  location?: string;
+}) {
   const response = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -190,6 +216,31 @@ export async function registerUser(data: { name: string; email: string; password
     throw new Error(json.message || "Registration failed");
   }
   return json.data;
+}
+
+export async function resendVerificationEmail(email: string): Promise<void> {
+  const response = await fetch(`${API_URL}/auth/verify-email/resend`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  const json = await response.json();
+  if (!response.ok || !json.success) {
+    throw new Error(json.message || "Failed to resend verification email");
+  }
+}
+
+export async function resendVerificationEmailForCurrentUser(): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/auth/resend-verification`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  const json = await response.json();
+  if (!response.ok || !json.success) {
+    throw new Error(json.message || "Failed to resend verification email");
+  }
 }
 
 export async function loginUser(data: { email: string; password: string }): Promise<UserProfile> {
@@ -213,24 +264,21 @@ export async function loginUser(data: { email: string; password: string }): Prom
     localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   }
 
-  const profile: UserProfile = {
-    id: user.id,
-    fullName: user.name || user.email.split("@")[0],
-    email: user.email,
-    phone: user.phone || "",
-    location: user.location || "",
-    bio: user.bio || "",
-    travelStyle: user.travelStyle || "Balanced explorer",
-    languages: user.languages || [],
-    newsletter: user.newsletter ?? true,
-    safetyAlerts: user.safetyAlerts ?? true,
-    memberSince: formatMemberSince(new Date(user.createdAt)),
-    avatarSeed: getInitials(user.name || user.email),
-    themeColor: user.themeColor || "#0E8C88",
-    emailVerifiedAt: user.emailVerifiedAt || null,
-    createdAt: user.createdAt,
-  };
+  const profile = toUserProfile(user);
 
+  saveStoredUserProfile(profile);
+  return profile;
+}
+
+export async function getMe(): Promise<UserProfile> {
+  const response = await fetchWithAuth(`${API_URL}/auth/me`);
+  const json = await response.json();
+
+  if (!response.ok || !json.success) {
+    throw new Error(json.message || "Failed to restore session");
+  }
+
+  const profile = toUserProfile(json.data);
   saveStoredUserProfile(profile);
   return profile;
 }
@@ -318,23 +366,7 @@ export async function otlLogin(token: string): Promise<UserProfile> {
     localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   }
 
-  const profile: UserProfile = {
-    id: user.id,
-    fullName: user.name || user.email.split("@")[0],
-    email: user.email,
-    phone: user.phone || "",
-    location: user.location || "",
-    bio: user.bio || "",
-    travelStyle: user.travelStyle || "Balanced explorer",
-    languages: user.languages || [],
-    newsletter: user.newsletter ?? true,
-    safetyAlerts: user.safetyAlerts ?? true,
-    memberSince: formatMemberSince(new Date(user.createdAt)),
-    avatarSeed: getInitials(user.name || user.email),
-    themeColor: user.themeColor || "#0E8C88",
-    emailVerifiedAt: user.emailVerifiedAt || null,
-    createdAt: user.createdAt,
-  };
+  const profile = toUserProfile(user);
 
   saveStoredUserProfile(profile);
   return profile;
@@ -352,24 +384,7 @@ export async function updateProfile(data: any): Promise<UserProfile> {
     throw new Error(json.message || "Failed to update profile");
   }
   
-  const user = json.data;
-  const profile: UserProfile = {
-    id: user.id,
-    fullName: user.name || user.email.split("@")[0],
-    email: user.email,
-    phone: user.phone || "",
-    location: user.location || "",
-    bio: user.bio || "",
-    travelStyle: user.travelStyle || "Balanced explorer",
-    languages: user.languages || [],
-    newsletter: user.newsletter ?? true,
-    safetyAlerts: user.safetyAlerts ?? true,
-    memberSince: formatMemberSince(new Date(user.createdAt)),
-    avatarSeed: getInitials(user.name || user.email),
-    themeColor: user.themeColor || "#0E8C88",
-    emailVerifiedAt: user.emailVerifiedAt || null,
-    createdAt: user.createdAt,
-  };
+  const profile = toUserProfile(json.data);
 
   saveStoredUserProfile(profile);
   return profile;

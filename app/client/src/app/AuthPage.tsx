@@ -32,7 +32,7 @@ export default function AuthPage({
   onModeChange: (mode: AuthMode) => void;
   onNavigate: (page: Page) => void;
   onAuthSuccess: (user: UserProfile) => void;
-  onRegistrationPending?: (email: string) => void;
+  onRegistrationPending: (email: string) => void;
 }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -69,41 +69,25 @@ export default function AuthPage({
 
     try {
       if (isRegister) {
-        // 1. Register with backend
         await registerUser({
           name: fullName.trim(),
           email: email.trim(),
           password: password.trim(),
+          phone: phone.trim() || undefined,
+          location: location.trim() || undefined,
         });
 
-        // 2. Show email verification screen instead of auto-login
-        if (onRegistrationPending) {
-          onRegistrationPending(email.trim());
-          return;
-        }
-
-        // Fallback: auto-login if no verification handler provided
-        const userProfile = await loginUser({
-          email: email.trim(),
-          password: password.trim(),
-        });
-
-        onAuthSuccess({
-          ...userProfile,
-          phone: phone.trim() || userProfile.phone,
-          location: location.trim() || userProfile.location,
-        });
+        onRegistrationPending(email.trim());
+        return;
       } else {
-        // Standard Sign In
         const userProfile = await loginUser({
           email: email.trim(),
           password: password.trim(),
         });
 
         onAuthSuccess(userProfile);
+        onNavigate("profile");
       }
-
-      onNavigate("profile");
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred.");
     } finally {

@@ -2,15 +2,18 @@ import { useState } from "react";
 import { Globe, Mail, Loader2, CheckCircle2, ArrowLeft, Sparkles, AlertCircle } from "lucide-react";
 import type { Page } from "./App";
 import { requestOtl } from "./auth";
+import { useResendCooldown } from "./hooks/useResendCooldown";
 
-type SendState = "idle" | "loading" | "sent";
+const RESEND_COOLDOWN_SECONDS = 60;
 
 export default function MagicLinkPage({ onNavigate }: { onNavigate: (p: Page) => void }) {
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState(false);
-  const [sendState, setSendState] = useState<SendState>("idle");
+  const [isSending, setIsSending] = useState(false);
+  const [hasSent, setHasSent] = useState(false);
 
   const [sendError, setSendError] = useState("");
+  const { isCoolingDown, formattedRemaining, startCooldown } = useResendCooldown(RESEND_COOLDOWN_SECONDS);
 
   const validate = (val: string) => {
     const ok = val.includes("@") && val.includes(".");
@@ -21,14 +24,17 @@ export default function MagicLinkPage({ onNavigate }: { onNavigate: (p: Page) =>
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate(email)) return;
-    setSendState("loading");
+    if (isSending || isCoolingDown) return;
+    setIsSending(true);
     setSendError("");
     try {
       await requestOtl(email);
-      setSendState("sent");
+      setHasSent(true);
+      startCooldown();
     } catch (err: any) {
       setSendError(err.message || "Failed to send magic link");
-      setSendState("idle");
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -157,16 +163,16 @@ export default function MagicLinkPage({ onNavigate }: { onNavigate: (p: Page) =>
             {/* CTA button */}
             <button
               type="submit"
-              disabled={sendState === "loading" || sendState === "sent"}
+              disabled={isSending || isCoolingDown}
               className="flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-bold text-white transition-all"
-              style={{ background: "#0E8C88", opacity: sendState === "loading" ? 0.80 : 1 }}
+              style={{ background: "#0E8C88", opacity: isSending ? 0.80 : 1 }}
             >
-              {sendState === "loading" ? (
+              {isSending ? (
                 <><Loader2 size={16} className="animate-spin" /> Sending…</>
-              ) : sendState === "sent" ? (
-                <><CheckCircle2 size={16} /> Link Sent!</>
+              ) : isCoolingDown ? (
+                <><Mail size={15} /> Resend in {formattedRemaining}</>
               ) : (
-                <><Mail size={15} /> Email Me a Sign-In Link</>
+                <><Mail size={15} /> {hasSent ? "Resend Link" : "Email Me a Sign-In Link"}</>
               )}
             </button>
 
@@ -177,7 +183,7 @@ export default function MagicLinkPage({ onNavigate }: { onNavigate: (p: Page) =>
             )}
 
             {/* Success toast — collapsible */}
-            {sendState === "sent" && (
+            {hasSent && (
               <div
                 className="flex items-start gap-3 rounded-2xl px-5 py-4 border"
                 style={{ background: "#EBF7F6", borderColor: "#A8D8D7", animation: "fadeSlideIn 0.25s ease" }}

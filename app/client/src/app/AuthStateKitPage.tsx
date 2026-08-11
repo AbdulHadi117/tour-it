@@ -299,7 +299,7 @@ function ExpiredTokenVariant() {
           Link Expired
         </h3>
         <p className="text-xs leading-5 text-[#6B7280] max-w-[260px]">
-          This verification or reset link is invalid or has expired. Links are valid for 24 hours and can only be used once.
+          This verification or reset link is invalid or has expired. Reset links are valid for 30 minutes and verification links for 24 hours.
         </p>
       </div>
       <div className="w-full border-t border-[#DDD6C7]" />

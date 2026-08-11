@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Globe, Mail, Loader2, CheckCircle2, ArrowLeft, AlertCircle } from "lucide-react";
 import type { Page } from "./App";
 import { requestPasswordReset } from "./auth";
+import { useResendCooldown } from "./hooks/useResendCooldown";
 
-type ButtonState = "default" | "loading" | "done";
+const RESEND_COOLDOWN_SECONDS = 60;
 
 export default function ForgotPasswordPage({
   onNavigate,
@@ -12,10 +13,11 @@ export default function ForgotPasswordPage({
 }) {
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState(false);
-  const [btnState, setBtnState] = useState<ButtonState>("default");
+  const [isSending, setIsSending] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState("");
+  const { isCoolingDown, formattedRemaining, startCooldown } = useResendCooldown(RESEND_COOLDOWN_SECONDS);
 
   const validate = (val: string) => {
     const ok = val.includes("@") && val.includes(".");
@@ -26,16 +28,18 @@ export default function ForgotPasswordPage({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate(email)) return;
-    setBtnState("loading");
+    if (isSending || isCoolingDown) return;
+    setIsSending(true);
     setShowSuccess(false);
     setErrorMsg("");
     try {
       await requestPasswordReset(email);
-      setBtnState("done");
       setShowSuccess(true);
+      startCooldown();
     } catch (err: any) {
-      setBtnState("default");
       setErrorMsg(err.message || "Failed to send reset link");
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -117,7 +121,7 @@ export default function ForgotPasswordPage({
             {[
               { v: "< 2 min", l: "Recovery time" },
               { v: "256-bit", l: "Encrypted link" },
-              { v: "24 hrs", l: "Link validity" },
+              { v: "30 min", l: "Link validity" },
             ].map((s) => (
               <div key={s.l} className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3 backdrop-blur-sm">
                 <p className="text-base font-black text-white" style={{ fontFamily: "'Playfair Display', serif" }}>
@@ -223,25 +227,25 @@ export default function ForgotPasswordPage({
             {/* CTA button — default / loading variant */}
             <button
               type="submit"
-              disabled={btnState === "loading" || btnState === "done"}
+              disabled={isSending || isCoolingDown}
               className="flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-bold text-white transition-all"
               style={{
                 background: "#0E8C88",
-                opacity: btnState === "loading" ? 0.80 : 1,
+                opacity: isSending ? 0.80 : 1,
               }}
             >
-              {btnState === "loading" ? (
+              {isSending ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
                   Sending…
                 </>
-              ) : btnState === "done" ? (
+              ) : isCoolingDown ? (
                 <>
-                  <CheckCircle2 size={16} />
-                  Link Sent
+                  <Loader2 size={16} />
+                  Resend in {formattedRemaining}
                 </>
               ) : (
-                "Send Reset Link"
+                showSuccess ? "Resend Link" : "Send Reset Link"
               )}
             </button>
 
@@ -264,7 +268,7 @@ export default function ForgotPasswordPage({
                     Reset link sent!
                   </p>
                   <p className="mt-0.5 text-xs text-[#166534]/75 leading-5">
-                    Please check your inbox. If you don't see the email, check your spam folder. The link expires in 24 hours.
+                    Please check your inbox. If you don't see the email, check your spam folder. The link expires in 30 minutes.
                   </p>
                 </div>
               </div>
@@ -287,7 +291,7 @@ export default function ForgotPasswordPage({
           <div className="mt-10 flex items-center justify-center gap-6">
             {[
               "Secure 256-bit encryption",
-              "Link valid for 24 hours",
+              "Link valid for 30 minutes",
               "No account sharing",
             ].map((item) => (
               <div key={item} className="flex items-center gap-1.5">

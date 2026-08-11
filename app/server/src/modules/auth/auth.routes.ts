@@ -21,6 +21,8 @@ router.post("/logout", controller.logout);
 // users need these two routes to check their state and complete verification.
 router.get("/me", requireAuth, controller.me);
 router.post("/verify-email", emailVerificationRateLimiter, controller.verifyEmail);
+router.post("/verify-email/resend", emailVerificationRateLimiter, controller.resendVerificationEmail);
+router.post("/resend-verification", requireAuth, emailVerificationRateLimiter, controller.resendVerificationForCurrentUser);
 
 // Requires a valid session AND a verified email.
 router.patch("/update-password", requireAuth, requireVerified, controller.updatePassword);

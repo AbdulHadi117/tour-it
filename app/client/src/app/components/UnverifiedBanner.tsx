@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { AlertTriangle, CheckCircle2, X, Mail } from "lucide-react";
+import { AlertTriangle, CheckCircle2, X, Mail, Loader2 } from "lucide-react";
+import { resendVerificationEmailForCurrentUser } from "../auth";
+import { useResendCooldown } from "../hooks/useResendCooldown";
 
 type BannerVariant = "unverified" | "success";
 
@@ -12,22 +14,33 @@ export default function UnverifiedBanner({
 }) {
   const [variant, setVariant]   = useState<BannerVariant>(initialVariant);
   const [dismissed, setDismissed] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { isCoolingDown, formattedRemaining, startCooldown } = useResendCooldown(60);
 
   if (dismissed) return null;
 
   const isUnverified = variant === "unverified";
 
+  const handleResend = async () => {
+    if (isResending || isCoolingDown) return;
+    setIsResending(true);
+    setError(null);
+    try {
+      await resendVerificationEmailForCurrentUser();
+      setVariant("success");
+      startCooldown();
+    } catch (err: any) {
+      setError(err.message || "Failed to resend verification email");
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   return (
-    <div
-      className="w-full"
-      style={{
-        background: isUnverified ? "#FBF0DD" : "#E4F3F1",
-        borderBottom: `1px solid ${isUnverified ? "#E8A33D" : "#0E8C88"}`,
-        height: 48,
-      }}
-    >
+    <div className="w-full" style={{ background: isUnverified ? "#FBF0DD" : "#E4F3F1", borderBottom: `1px solid ${isUnverified ? "#E8A33D" : "#0E8C88"}` }}>
       {/* Space-between horizontal flex */}
-      <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-8 gap-4">
+      <div className="mx-auto flex min-h-[48px] max-w-[1440px] items-center justify-between px-8 py-1.5 gap-4">
 
         {/* Left spacer (mirrors dismiss button width for true centering) */}
         <div className="w-8 shrink-0" />
@@ -54,11 +67,24 @@ export default function UnverifiedBanner({
 
           {isUnverified && (
             <button
-              onClick={() => setVariant("success")}
-              className="shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold text-white transition-colors hover:bg-[#0B7874]"
+              onClick={handleResend}
+              disabled={isResending || isCoolingDown}
+              className="shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold text-white transition-colors hover:bg-[#0B7874] disabled:opacity-60"
               style={{ background: "#0E8C88" }}
             >
-              <Mail size={10} /> Resend Verification Email
+              {isResending ? (
+                <>
+                  <Loader2 size={10} className="animate-spin" /> Sending...
+                </>
+              ) : isCoolingDown ? (
+                <>
+                  <Mail size={10} /> Resend in {formattedRemaining}
+                </>
+              ) : (
+                <>
+                  <Mail size={10} /> Resend link
+                </>
+              )}
             </button>
           )}
         </div>
@@ -71,6 +97,11 @@ export default function UnverifiedBanner({
           <X size={14} />
         </button>
       </div>
+      {error && (
+        <p className="mx-auto max-w-[1440px] px-8 pb-1 text-[10px] font-medium text-[#E15B3F]">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
