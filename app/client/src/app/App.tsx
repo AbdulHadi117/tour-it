@@ -1024,6 +1024,7 @@ export default function App() {
 
   const handleAuthSuccess = (user: UserProfile) => {
     setCurrentUser(user);
+    navigate("profile");
   };
 
   const handleRegistrationPending = (email: string) => {
