@@ -306,6 +306,7 @@ export async function updatePassword(data: any) {
   if (!response.ok || !json.success) {
     throw new Error(json.message || "Failed to update password");
   }
+  clearAuthData();
   return json.data;
 }
 
