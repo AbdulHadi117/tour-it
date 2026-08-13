@@ -174,7 +174,11 @@ export default function MagicLinkProcessingPage({
 
       try {
         const user = await otlLogin(token);
-        onAuthSuccess(user);
+        setActiveState("success");
+        setTimeout(() => {
+          onAuthSuccess(user);
+          onNavigate("profile");
+        }, 1200);
         return;
       } catch (err: any) {
         setActiveState("expired");

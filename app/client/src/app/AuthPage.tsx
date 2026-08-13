@@ -1,5 +1,16 @@
 import { useState } from "react";
-import { ArrowRight, CheckCircle2, Eye, EyeOff, Mail, MapPin, Phone, Sparkles, ShieldCheck, Loader2 } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Mail,
+  MapPin,
+  Phone,
+  Sparkles,
+  ShieldCheck,
+  Loader2,
+} from "lucide-react";
 import type { AuthMode, UserProfile } from "./auth";
 import { registerUser, loginUser } from "./auth";
 import type { Page } from "./App";
@@ -60,8 +71,20 @@ export default function AuthPage({
       return;
     }
 
-    if (password.trim().length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (isRegister) {
+      const pw = password.trim();
+      const hasUpper = /[A-Z]/.test(pw);
+      const hasNumberOrSymbol = /[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(
+        pw,
+      );
+      if (pw.length < 8 || !hasUpper || !hasNumberOrSymbol) {
+        setError(
+          "Password must be at least 8 characters and include one uppercase letter and one number or symbol.",
+        );
+        return;
+      }
+    } else if (password.trim().length < 1) {
+      setError("Enter your password.");
       return;
     }
 
@@ -100,18 +123,33 @@ export default function AuthPage({
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-8 lg:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-8 xl:gap-12 items-stretch">
           <section className="relative overflow-hidden rounded-[32px] bg-[#12233A] text-white p-8 lg:p-12 min-h-[620px]">
-            <div className="absolute inset-0 opacity-15" style={{ backgroundImage: "radial-gradient(circle at 20% 20%, white 1px, transparent 1px)", backgroundSize: "22px 22px" }} />
+            <div
+              className="absolute inset-0 opacity-15"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 20% 20%, white 1px, transparent 1px)",
+                backgroundSize: "22px 22px",
+              }}
+            />
             <div className="relative h-full flex flex-col justify-between gap-8">
               <div className="space-y-6 max-w-xl">
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.28em] text-white/85">
                   <Sparkles size={14} /> Account access
                 </span>
                 <div>
-                  <h1 className="leading-[1.02] text-4xl lg:text-5xl" style={{ fontFamily: "'Playfair Display', serif", fontWeight: 800 }}>
+                  <h1
+                    className="leading-[1.02] text-4xl lg:text-5xl"
+                    style={{
+                      fontFamily: "'Playfair Display', serif",
+                      fontWeight: 800,
+                    }}
+                  >
                     Manage your travel identity in one place.
                   </h1>
                   <p className="mt-5 max-w-lg text-sm lg:text-base leading-7 text-white/75">
-                    Sign in to resume your trips, or create a profile to save destinations, track your planning history, and keep your travel preferences ready for every journey.
+                    Sign in to resume your trips, or create a profile to save
+                    destinations, track your planning history, and keep your
+                    travel preferences ready for every journey.
                   </p>
                 </div>
 
@@ -121,8 +159,14 @@ export default function AuthPage({
                     { label: "Wishlist items", value: "12" },
                     { label: "Profile sync", value: "On" },
                   ].map((item) => (
-                    <div key={item.label} className="rounded-2xl border border-white/10 bg-white/8 px-4 py-4 backdrop-blur-sm">
-                      <p className="text-2xl font-black text-white" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    <div
+                      key={item.label}
+                      className="rounded-2xl border border-white/10 bg-white/8 px-4 py-4 backdrop-blur-sm"
+                    >
+                      <p
+                        className="text-2xl font-black text-white"
+                        style={{ fontFamily: "'Playfair Display', serif" }}
+                      >
                         {item.value}
                       </p>
                       <p className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-white/50">
@@ -140,8 +184,14 @@ export default function AuthPage({
                   "Keep preferences and alerts together",
                   "Switch between travel and profile views",
                 ].map((item) => (
-                  <div key={item} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white/80">
-                    <CheckCircle2 size={16} className="shrink-0 text-[#E8A33D]" />
+                  <div
+                    key={item}
+                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white/80"
+                  >
+                    <CheckCircle2
+                      size={16}
+                      className="shrink-0 text-[#E8A33D]"
+                    />
                     <span>{item}</span>
                   </div>
                 ))}
@@ -152,9 +202,16 @@ export default function AuthPage({
           <section className="rounded-[32px] border border-[rgba(18,35,58,0.08)] bg-white p-6 lg:p-8 shadow-[0_20px_60px_rgba(18,35,58,0.08)]">
             <div className="flex items-center justify-between gap-4 mb-6">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-[#0E8C88]">{isRegister ? "Create account" : "Welcome back"}</p>
-                <h2 className="mt-2 text-2xl font-bold text-[#12233A]" style={{ fontFamily: "'Playfair Display', serif" }}>
-                  {isRegister ? "Start your profile" : "Sign in to your account"}
+                <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-[#0E8C88]">
+                  {isRegister ? "Create account" : "Welcome back"}
+                </p>
+                <h2
+                  className="mt-2 text-2xl font-bold text-[#12233A]"
+                  style={{ fontFamily: "'Playfair Display', serif" }}
+                >
+                  {isRegister
+                    ? "Start your profile"
+                    : "Sign in to your account"}
                 </h2>
               </div>
               <div className="rounded-full bg-[#EBF7F6] p-1 flex items-center gap-1">
@@ -256,14 +313,14 @@ export default function AuthPage({
                 <div className="flex flex-col items-end gap-1">
                   <button
                     type="button"
-                    onClick={() => onNavigate("forgot-password" as any)}
+                    onClick={() => onNavigate("forgot-password")}
                     className="text-xs font-semibold text-[#0E8C88] hover:underline"
                   >
                     Forgot password?
                   </button>
                   <button
                     type="button"
-                    onClick={() => onNavigate("magic-link" as any)}
+                    onClick={() => onNavigate("magic-link")}
                     className="text-xs font-semibold text-[#0E8C88] hover:underline"
                   >
                     Sign in with magic link
@@ -282,7 +339,11 @@ export default function AuthPage({
                 disabled={submitting}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0E8C88] px-5 py-3.5 text-sm font-bold text-white transition-colors hover:bg-[#0B7874] disabled:opacity-60"
               >
-                {submitting ? "Processing…" : isRegister ? "Create account" : "Sign in"}
+                {submitting
+                  ? "Processing…"
+                  : isRegister
+                    ? "Create account"
+                    : "Sign in"}
                 <ArrowRight size={16} />
               </button>
             </form>
@@ -294,7 +355,9 @@ export default function AuthPage({
                 className="rounded-2xl border border-[rgba(18,35,58,0.12)] px-4 py-3 text-left text-sm font-semibold text-[#12233A] transition-colors hover:border-[#0E8C88] hover:bg-[#EBF7F6]/30"
               >
                 Already have an account
-                <span className="mt-1 block text-xs font-normal text-[#6B7280]">Use your email to access saved trips and profile settings.</span>
+                <span className="mt-1 block text-xs font-normal text-[#6B7280]">
+                  Use your email to access saved trips and profile settings.
+                </span>
               </button>
               <button
                 type="button"
@@ -302,7 +365,10 @@ export default function AuthPage({
                 className="rounded-2xl border border-[rgba(18,35,58,0.12)] px-4 py-3 text-left text-sm font-semibold text-[#12233A] transition-colors hover:border-[#0E8C88] hover:bg-[#EBF7F6]/30"
               >
                 New here
-                <span className="mt-1 block text-xs font-normal text-[#6B7280]">Create a profile to save travel preferences and manage your account.</span>
+                <span className="mt-1 block text-xs font-normal text-[#6B7280]">
+                  Create a profile to save travel preferences and manage your
+                  account.
+                </span>
               </button>
             </div>
           </section>

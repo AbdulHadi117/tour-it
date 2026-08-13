@@ -1,10 +1,20 @@
 import { z } from "zod";
 
+const passwordPolicyMessage =
+  "Password must be at least 8 characters and include one uppercase letter and one number or symbol";
+
+const strongPassword = z
+  .string()
+  .min(8, passwordPolicyMessage)
+  .max(128)
+  .regex(/[A-Z]/, passwordPolicyMessage)
+  .regex(/[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/, passwordPolicyMessage);
+
 // Matches what AuthPage.tsx sends during registration.
 export const registerSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
   email: z.string().trim().toLowerCase().email("Enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters").max(128),
+  password: strongPassword,
   phone: z.string().optional(),
   location: z.string().optional(),
 });
@@ -28,7 +38,7 @@ export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 
 export const resetPasswordSchema = z.object({
   token: z.string().min(1, "token is required"),
-  newPassword: z.string().min(6, "Password must be at least 6 characters").max(128),
+  newPassword: strongPassword,
 });
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
@@ -44,7 +54,7 @@ export type ResendVerificationEmailInput = z.infer<typeof resendVerificationEmai
 
 export const updatePasswordSchema = z.object({
   currentPassword: z.string().min(1, "currentPassword is required"),
-  newPassword: z.string().min(6, "Password must be at least 6 characters").max(128),
+  newPassword: strongPassword,
 });
 export type UpdatePasswordInput = z.infer<typeof updatePasswordSchema>;
 

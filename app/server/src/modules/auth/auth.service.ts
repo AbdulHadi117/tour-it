@@ -111,9 +111,21 @@ export async function verifyEmail(token: string): Promise<void> {
     tokenHash,
   ]);
 
-  if (!row || row.used_at || new Date(row.expires_at) < new Date()) {
+  if (!row) {
     throw AppError.badRequest(
       "This verification link is invalid or has expired",
+    );
+  }
+
+  if (row.used_at) {
+    throw AppError.badRequest(
+      "This email address has already been verified",
+    );
+  }
+
+  if (new Date(row.expires_at) < new Date()) {
+    throw AppError.badRequest(
+      "This verification link has expired",
     );
   }
 
