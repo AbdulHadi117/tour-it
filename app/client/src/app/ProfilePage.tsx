@@ -11,12 +11,11 @@ import {
   Star,
   UserRound,
   KeyRound,
-  Mail as MailIcon,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "./components/ui/avatar";
 import type { Page } from "./App";
 import type { UserProfile } from "./auth";
-import { deriveAvatarSeed } from "./auth";
+import { deriveAvatarSeed, loginUser } from "./auth";
 import ChangePasswordModal from "./components/ChangePasswordModal";
 import EmailSettingsCard from "./components/EmailSettingsCard";
 import UnverifiedBanner from "./components/UnverifiedBanner";
@@ -106,8 +105,8 @@ export default function ProfilePage({
             email: draft.email,
             avatarSeed: draft.avatarSeed,
           }}
-          onReAuth={async () => {
-            await new Promise((r) => setTimeout(r, 1200));
+          onReAuth={async (password) => {
+            await loginUser({ email: draft.email, password });
             setShowSessionExpired(false);
           }}
           onSwitchUser={() => {
@@ -428,14 +427,6 @@ export default function ProfilePage({
                     className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#DDD6C7] bg-white px-5 py-3 text-sm font-bold text-[#12233A] transition-colors hover:border-[#0E8C88] hover:text-[#0E8C88]"
                   >
                     <KeyRound size={15} /> Change Password
-                  </button>
-
-                  {/* Session expired demo trigger */}
-                  <button
-                    onClick={() => setShowSessionExpired(true)}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#DDD6C7] bg-white px-5 py-3 text-sm font-bold text-[#6B7280] transition-colors hover:border-[#E8A33D] hover:text-[#E8A33D]"
-                  >
-                    <MailIcon size={15} /> Preview: Session Expired Modal
                   </button>
 
                   <div className="flex flex-col gap-3 sm:flex-row">

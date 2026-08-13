@@ -51,7 +51,6 @@ export default function AuthPage({
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("Lahore, Pakistan");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -300,16 +299,7 @@ export default function AuthPage({
                 </>
               )}
 
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <label className="flex items-center gap-2 text-xs font-medium text-[#6B7280]">
-                  <input
-                    checked={rememberMe}
-                    onChange={(event) => setRememberMe(event.target.checked)}
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-[rgba(18,35,58,0.2)] text-[#0E8C88] focus:ring-[#0E8C88]"
-                  />
-                  {isRegister ? "Keep my profile synced" : "Keep me signed in"}
-                </label>
+              <div className="flex flex-wrap items-center justify-end gap-3">
                 <div className="flex flex-col items-end gap-1">
                   <button
                     type="button"

@@ -33,7 +33,6 @@ import ForgotPasswordPage from "./ForgotPasswordPage";
 import PasswordResetPage from "./PasswordResetPage";
 import MagicLinkPage from "./MagicLinkPage";
 import MagicLinkProcessingPage from "./MagicLinkProcessingPage";
-import AuthStateKitPage from "./AuthStateKitPage";
 import {
   clearStoredUserProfile,
   getAuthToken,
@@ -49,7 +48,7 @@ import {
 export type Page =
   "home" | "explore" | "city" | "place" | "planner" | "about" | "auth" | "profile"
   | "email-verify" | "verify-result" | "forgot-password"
-  | "reset-password" | "magic-link" | "magic-link-processing" | "auth-kit";
+  | "reset-password" | "magic-link" | "magic-link-processing" ;
 
 // ── Shared Nav Links ───────────────────────────────────────────────────────
 const NAV_LINKS: { label: string; page: Page | null }[] = [
@@ -1093,9 +1092,6 @@ export default function App() {
       )}
       {page === "magic-link-processing" && (
         <MagicLinkProcessingPage onNavigate={navigate} onAuthSuccess={handleAuthSuccess} />
-      )}
-      {page === "auth-kit" && (
-        <AuthStateKitPage onNavigate={navigate} />
       )}
       {page === "profile" && currentUser && (
         <ProfilePage

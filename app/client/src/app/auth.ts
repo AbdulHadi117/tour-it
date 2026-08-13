@@ -67,33 +67,6 @@ export function deriveAvatarSeed(name: string) {
   return getInitials(name);
 }
 
-export function createDefaultUserProfile({
-  fullName,
-  email,
-}: {
-  fullName: string;
-  email: string;
-}): UserProfile {
-  const safeName = fullName.trim() || email.split("@")[0] || "Traveler";
-  return {
-    id: crypto.randomUUID(),
-    fullName: safeName,
-    email,
-    phone: "+92 300 0000000",
-    location: "Lahore, Pakistan",
-    bio: "Planning Pakistan trips, saving routes, and keeping travel notes organized.",
-    travelStyle: "Balanced explorer",
-    languages: ["English", "Urdu"],
-    newsletter: true,
-    safetyAlerts: true,
-    memberSince: formatMemberSince(new Date()),
-    tripsPlanned: 4,
-    wishlistCount: 12,
-    avatarSeed: getInitials(safeName),
-    themeColor: "#0E8C88",
-  };
-}
-
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(TOKEN_KEY);
