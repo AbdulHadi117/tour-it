@@ -118,10 +118,25 @@ function onRefreshed(token: string) {
   refreshSubscribers = [];
 }
 
+let sessionExpiredHandler: (() => void) | null = null;
+
+export function onSessionExpired(handler: () => void) {
+  sessionExpiredHandler = handler;
+}
+
+function handleSessionExpired() {
+  clearAuthData();
+  if (sessionExpiredHandler) {
+    sessionExpiredHandler();
+  } else {
+    window.location.href = "/";
+  }
+}
+
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
   let token = getAuthToken();
   const headers = new Headers(options.headers || {});
-  
+
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
@@ -137,22 +152,20 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refreshToken: getRefreshToken() }),
         });
-        
+
         const json = await refreshResponse.json();
-        
+
         if (refreshResponse.ok && json.success) {
           const { accessToken, refreshToken: newRefreshToken } = json.data;
           localStorage.setItem(TOKEN_KEY, accessToken);
           localStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
           onRefreshed(accessToken);
         } else {
-          clearAuthData();
-          window.location.href = "/";
+          handleSessionExpired();
           return response;
         }
       } catch (err) {
-        clearAuthData();
-        window.location.href = "/";
+        handleSessionExpired();
         return response;
       } finally {
         isRefreshing = false;
@@ -216,7 +229,10 @@ export async function resendVerificationEmailForCurrentUser(): Promise<void> {
   }
 }
 
-export async function loginUser(data: { email: string; password: string }): Promise<UserProfile> {
+export async function loginUser(data: {
+  email: string;
+  password: string;
+}): Promise<UserProfile> {
   const response = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -307,7 +323,10 @@ export async function requestPasswordReset(email: string): Promise<void> {
   }
 }
 
-export async function resetPassword(token: string, password: string): Promise<void> {
+export async function resetPassword(
+  token: string,
+  password: string,
+): Promise<void> {
   const res = await fetch(`${API_URL}/auth/reset-password`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -325,7 +344,7 @@ export async function otlLogin(token: string): Promise<UserProfile> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token }),
   });
-  
+
   const json = await response.json();
   if (!response.ok || !json.success) {
     throw new Error(json.message || "Invalid or expired magic link");
@@ -352,12 +371,12 @@ export async function updateProfile(data: any): Promise<UserProfile> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  
+
   const json = await response.json();
   if (!response.ok || !json.success) {
     throw new Error(json.message || "Failed to update profile");
   }
-  
+
   const profile = toUserProfile(json.data);
 
   saveStoredUserProfile(profile);

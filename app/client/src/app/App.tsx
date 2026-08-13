@@ -33,6 +33,7 @@ import ForgotPasswordPage from "./ForgotPasswordPage";
 import PasswordResetPage from "./PasswordResetPage";
 import MagicLinkPage from "./MagicLinkPage";
 import MagicLinkProcessingPage from "./MagicLinkProcessingPage";
+import SessionExpiredModal from "./components/SessionExpiredModal";
 import {
   clearStoredUserProfile,
   getAuthToken,
@@ -40,15 +41,27 @@ import {
   saveStoredUserProfile,
   updateProfile,
   logoutUser,
+  onSessionExpired,
   type AuthMode,
   type UserProfile,
 } from "./auth";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 export type Page =
-  "home" | "explore" | "city" | "place" | "planner" | "about" | "auth" | "profile"
-  | "email-verify" | "verify-result" | "forgot-password"
-  | "reset-password" | "magic-link" | "magic-link-processing" ;
+  | "home"
+  | "explore"
+  | "city"
+  | "place"
+  | "planner"
+  | "about"
+  | "auth"
+  | "profile"
+  | "email-verify"
+  | "verify-result"
+  | "forgot-password"
+  | "reset-password"
+  | "magic-link"
+  | "magic-link-processing";
 
 // ── Shared Nav Links ───────────────────────────────────────────────────────
 const NAV_LINKS: { label: string; page: Page | null }[] = [
@@ -86,11 +99,7 @@ function SiteHeader({
           className="flex items-center gap-2.5 shrink-0 group"
         >
           <div className="w-9 h-9 rounded-lg bg-[#0E8C88] flex items-center justify-center">
-            <Globe
-              size={20}
-              className="text-white"
-              strokeWidth={2}
-            />
+            <Globe size={20} className="text-white" strokeWidth={2} />
           </div>
           <div className="flex flex-col leading-none text-left">
             <span
@@ -139,7 +148,9 @@ function SiteHeader({
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0E8C88] text-xs font-black text-white">
                   {currentUser.avatarSeed}
                 </div>
-                <span className="max-w-[130px] truncate">{currentUser.fullName}</span>
+                <span className="max-w-[130px] truncate">
+                  {currentUser.fullName}
+                </span>
               </button>
               <button
                 onClick={onSignOut}
@@ -308,8 +319,7 @@ const FEATURES = [
       "Every review is verified by our editorial team. Read candid insights from travelers who have actually visited — no sponsored content, no inflated ratings. Just honest accounts from fellow explorers.",
     image:
       "https://images.unsplash.com/photo-1562913346-61ae3ab9277e?w=720&h=500&fit=crop&auto=format",
-    imageAlt:
-      "Travelers sharing reviews of Hunza Valley landscape",
+    imageAlt: "Travelers sharing reviews of Hunza Valley landscape",
     stat: "98% verified reviews",
     reverse: false,
   },
@@ -321,8 +331,7 @@ const FEATURES = [
       "Tell us your interests, travel style, and budget. Our AI draws on 1,200+ curated attractions and local expertise to build a day-by-day itinerary — complete with timing, transport links, and hidden gems.",
     image:
       "https://images.unsplash.com/photo-1753696252581-3fec5cf1b825?w=720&h=500&fit=crop&auto=format",
-    imageAlt:
-      "Snowy mountain peaks in the Karakoram range at dusk",
+    imageAlt: "Snowy mountain peaks in the Karakoram range at dusk",
     stat: "10k+ trips generated",
     reverse: true,
   },
@@ -334,8 +343,7 @@ const FEATURES = [
       "Our network of 800+ local contributors keeps every listing fresh. Opening hours, entrance fees, seasonal closures — updated in real time so your plans never unravel on arrival.",
     image:
       "https://images.unsplash.com/photo-1626440847069-d8073e1a0cca?w=720&h=500&fit=crop&auto=format",
-    imageAlt:
-      "Brown and grey mountain terrain under a vast blue sky",
+    imageAlt: "Brown and grey mountain terrain under a vast blue sky",
     stat: "800+ local contributors",
     reverse: false,
   },
@@ -412,13 +420,7 @@ const FOOTER_COLS = [
   },
 ];
 
-function StarRow({
-  rating,
-  count,
-}: {
-  rating: number;
-  count: number;
-}) {
+function StarRow({ rating, count }: { rating: number; count: number }) {
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex items-center gap-0.5">
@@ -434,26 +436,17 @@ function StarRow({
           />
         ))}
       </div>
-      <span className="text-xs font-semibold text-[#E8A33D]">
-        {rating}
-      </span>
-      <span className="text-xs text-[#6B7280]">
-        ({count.toLocaleString()})
-      </span>
+      <span className="text-xs font-semibold text-[#E8A33D]">{rating}</span>
+      <span className="text-xs text-[#6B7280]">({count.toLocaleString()})</span>
     </div>
   );
 }
 
 // ── Home Page ──────────────────────────────────────────────────────────────
-function HomePage({
-  onNavigate,
-}: {
-  onNavigate: (p: Page) => void;
-}) {
+function HomePage({ onNavigate }: { onNavigate: (p: Page) => void }) {
   const [whereInput, setWhereInput] = useState("");
   const [categoryOpen, setCategoryOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] =
-    useState("All Categories");
+  const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [newsletterEmail, setNewsletterEmail] = useState("");
 
   return (
@@ -494,14 +487,11 @@ function HomePage({
             }}
           >
             Every Journey Begins with a{" "}
-            <em className="not-italic text-[#E8A33D]">
-              Single Discovery
-            </em>
+            <em className="not-italic text-[#E8A33D]">Single Discovery</em>
           </h1>
           <p className="text-white/75 text-base mb-8 max-w-xl leading-relaxed">
-            From the world's highest peaks to ancient Mughal
-            cities — your gateway to Pakistan's most
-            extraordinary destinations.
+            From the world's highest peaks to ancient Mughal cities — your
+            gateway to Pakistan's most extraordinary destinations.
           </p>
 
           {/* Search card */}
@@ -522,9 +512,7 @@ function HomePage({
                 <input
                   type="text"
                   value={whereInput}
-                  onChange={(e) =>
-                    setWhereInput(e.target.value)
-                  }
+                  onChange={(e) => setWhereInput(e.target.value)}
                   placeholder="City, region, or attraction…"
                   className="text-sm text-[#12233A] font-medium bg-transparent outline-none placeholder:text-[#12233A]/30 w-full"
                 />
@@ -576,9 +564,7 @@ function HomePage({
           </div>
 
           <div className="flex items-center gap-2 mt-5 flex-wrap justify-center">
-            <span className="text-white/50 text-xs">
-              Popular:
-            </span>
+            <span className="text-white/50 text-xs">Popular:</span>
             {[
               "K2 Trek",
               "Lahore Fort",
@@ -615,9 +601,7 @@ function HomePage({
               >
                 Pakistan's Most Beloved
                 <br />
-                <em className="not-italic text-[#0E8C88]">
-                  Destinations
-                </em>
+                <em className="not-italic text-[#0E8C88]">Destinations</em>
               </h2>
             </div>
             <button
@@ -657,13 +641,8 @@ function HomePage({
                   >
                     {dest.name}
                   </h3>
-                  <p className="text-xs text-[#6B7280] mb-3">
-                    {dest.tagline}
-                  </p>
-                  <StarRow
-                    rating={dest.rating}
-                    count={dest.reviews}
-                  />
+                  <p className="text-xs text-[#6B7280] mb-3">{dest.tagline}</p>
+                  <StarRow rating={dest.rating} count={dest.reviews} />
                   <div className="mt-4 pt-3 border-t border-[rgba(18,35,58,0.07)] flex items-center justify-between">
                     <button
                       onClick={() => onNavigate("place")}
@@ -779,9 +758,7 @@ function HomePage({
                 key={i}
                 className="flex flex-col items-center justify-center py-10 px-6 text-center bg-[#12233A] hover:bg-[#1a3150] transition-colors"
               >
-                <div className="text-[#0E8C88] mb-3">
-                  {stat.icon}
-                </div>
+                <div className="text-[#0E8C88] mb-3">{stat.icon}</div>
                 <div
                   className="text-white font-bold mb-1"
                   style={{
@@ -829,19 +806,16 @@ function HomePage({
               fontStyle: "italic",
             }}
           >
-            "Sair-e-Pakistan transformed how we planned our
-            Northern Areas trip. Every single recommendation was
-            spot-on — from the best dhabas in Gilgit to the
-            hidden viewpoints above Attabad Lake."
+            "Sair-e-Pakistan transformed how we planned our Northern Areas trip.
+            Every single recommendation was spot-on — from the best dhabas in
+            Gilgit to the hidden viewpoints above Attabad Lake."
           </blockquote>
           <div className="flex items-center justify-center gap-3">
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm">
               AK
             </div>
             <div className="text-left">
-              <p className="text-white font-semibold text-sm">
-                Ayesha Khan
-              </p>
+              <p className="text-white font-semibold text-sm">Ayesha Khan</p>
               <p className="text-white/60 text-xs">
                 Lahore, Pakistan · 12 trips planned
               </p>
@@ -857,11 +831,7 @@ function HomePage({
             <div className="lg:col-span-2">
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-[#0E8C88] flex items-center justify-center">
-                  <Globe
-                    size={16}
-                    className="text-white"
-                    strokeWidth={2}
-                  />
+                  <Globe size={16} className="text-white" strokeWidth={2} />
                 </div>
                 <span
                   className="text-white font-bold"
@@ -874,9 +844,8 @@ function HomePage({
                 </span>
               </div>
               <p className="text-white/50 text-sm leading-relaxed mb-6 max-w-xs">
-                Your trusted guide to Pakistan's landscapes,
-                history, and culture. From the Karakoram to the
-                Arabian Sea.
+                Your trusted guide to Pakistan's landscapes, history, and
+                culture. From the Karakoram to the Arabian Sea.
               </p>
               <div>
                 <p className="text-white/80 text-xs font-semibold uppercase tracking-wider mb-3">
@@ -939,19 +908,17 @@ function HomePage({
               ))}
             </div>
             <div className="flex items-center gap-5">
-              {[
-                "Privacy Policy",
-                "Terms of Service",
-                "Cookie Settings",
-              ].map((l) => (
-                <a
-                  key={l}
-                  href="#"
-                  className="text-white/30 text-xs hover:text-white/60 transition-colors"
-                >
-                  {l}
-                </a>
-              ))}
+              {["Privacy Policy", "Terms of Service", "Cookie Settings"].map(
+                (l) => (
+                  <a
+                    key={l}
+                    href="#"
+                    className="text-white/30 text-xs hover:text-white/60 transition-colors"
+                  >
+                    {l}
+                  </a>
+                ),
+              )}
             </div>
           </div>
         </div>
@@ -975,6 +942,11 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
   const [pendingVerifyEmail, setPendingVerifyEmail] = useState("");
+  const [sessionExpiredUser, setSessionExpiredUser] = useState<{
+    fullName: string;
+    email: string;
+    avatarSeed: string;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -1000,6 +972,21 @@ export default function App() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    onSessionExpired(() => {
+      setCurrentUser((prev) => {
+        if (prev) {
+          setSessionExpiredUser({
+            fullName: prev.fullName,
+            email: prev.email,
+            avatarSeed: prev.avatarSeed,
+          });
+        }
+        return null;
+      });
+    });
   }, []);
 
   useEffect(() => {
@@ -1050,14 +1037,10 @@ export default function App() {
         onSignOut={handleSignOut}
       />
       {page === "home" && <HomePage onNavigate={navigate} />}
-      {page === "explore" && (
-        <ExplorePage onNavigate={navigate} />
-      )}
+      {page === "explore" && <ExplorePage onNavigate={navigate} />}
       {page === "city" && <CityPage onNavigate={navigate} />}
       {page === "place" && <PlacePage onNavigate={navigate} />}
-      {page === "planner" && (
-        <TripPlannerPage onNavigate={navigate} />
-      )}
+      {page === "planner" && <TripPlannerPage onNavigate={navigate} />}
       {page === "about" && <AboutPage onNavigate={navigate} />}
       {page === "auth" && (
         <AuthPage
@@ -1084,14 +1067,13 @@ export default function App() {
       {page === "forgot-password" && (
         <ForgotPasswordPage onNavigate={navigate} />
       )}
-      {page === "reset-password" && (
-        <PasswordResetPage onNavigate={navigate} />
-      )}
-      {page === "magic-link" && (
-        <MagicLinkPage onNavigate={navigate} />
-      )}
+      {page === "reset-password" && <PasswordResetPage onNavigate={navigate} />}
+      {page === "magic-link" && <MagicLinkPage onNavigate={navigate} />}
       {page === "magic-link-processing" && (
-        <MagicLinkProcessingPage onNavigate={navigate} onAuthSuccess={handleAuthSuccess} />
+        <MagicLinkProcessingPage
+          onNavigate={navigate}
+          onAuthSuccess={handleAuthSuccess}
+        />
       )}
       {page === "profile" && currentUser && (
         <ProfilePage
@@ -1122,6 +1104,16 @@ export default function App() {
           onNavigate={navigate}
           onAuthSuccess={handleAuthSuccess}
           onRegistrationPending={handleRegistrationPending}
+        />
+      )}
+      {sessionExpiredUser && (
+        <SessionExpiredModal
+          user={sessionExpiredUser}
+          onSignInAgain={() => {
+            setSessionExpiredUser(null);
+            setAuthMode("signin");
+            navigate("auth");
+          }}
         />
       )}
     </div>

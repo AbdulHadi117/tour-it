@@ -447,18 +447,6 @@ export default function PasswordResetPage({
               )}
             </div>
           )}
-
-          {/* Demo toggle — show expired card for preview */}
-          {formState === "default" && (
-            <div className="mt-8 flex justify-center">
-              <button
-                onClick={() => setFormState("expired")}
-                className="text-[10px] font-semibold uppercase tracking-widest text-[#12233A]/30 hover:text-[#E15B3F] transition-colors"
-              >
-                Preview: Expired Token State →
-              </button>
-            </div>
-          )}
         </div>
       </div>
 

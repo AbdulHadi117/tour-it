@@ -15,11 +15,10 @@ import {
 import { Avatar, AvatarFallback } from "./components/ui/avatar";
 import type { Page } from "./App";
 import type { UserProfile } from "./auth";
-import { deriveAvatarSeed, loginUser } from "./auth";
+import { deriveAvatarSeed } from "./auth";
 import ChangePasswordModal from "./components/ChangePasswordModal";
 import EmailSettingsCard from "./components/EmailSettingsCard";
 import UnverifiedBanner from "./components/UnverifiedBanner";
-import SessionExpiredModal from "./components/SessionExpiredModal";
 
 function SectionCard({
   title,
@@ -57,7 +56,6 @@ export default function ProfilePage({
   const [draft, setDraft] = useState(user);
   const [saved, setSaved] = useState(false);
   const [showChangePw, setShowChangePw] = useState(false);
-  const [showSessionExpired, setShowSessionExpired] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -96,24 +94,6 @@ export default function ProfilePage({
         <ChangePasswordModal
           onClose={() => setShowChangePw(false)}
           onSignOut={onSignOut}
-        />
-      )}
-      {showSessionExpired && (
-        <SessionExpiredModal
-          user={{
-            fullName: draft.fullName,
-            email: draft.email,
-            avatarSeed: draft.avatarSeed,
-          }}
-          onReAuth={async (password) => {
-            await loginUser({ email: draft.email, password });
-            setShowSessionExpired(false);
-          }}
-          onSwitchUser={() => {
-            setShowSessionExpired(false);
-            onSignOut();
-          }}
-          onClose={() => setShowSessionExpired(false)}
         />
       )}
 
@@ -273,13 +253,14 @@ export default function ProfilePage({
                   <span className="text-xs font-bold uppercase tracking-widest text-[#12233A]">
                     Email
                   </span>
-                  <input
-                    value={draft.email}
-                    onChange={(event) =>
-                      setDraft({ ...draft, email: event.target.value })
-                    }
-                    className="w-full rounded-2xl border border-[rgba(18,35,58,0.12)] bg-[#FAF8F3] px-4 py-3 text-sm outline-none focus:border-[#0E8C88]"
-                  />
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-[rgba(18,35,58,0.12)] bg-[#FAF8F3] px-4 py-3">
+                    <span className="text-sm text-[#12233A]">
+                      {draft.email}
+                    </span>
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[#6B7280]">
+                      Manage below
+                    </span>
+                  </div>
                 </label>
                 <label className="space-y-2">
                   <span className="text-xs font-bold uppercase tracking-widest text-[#12233A]">

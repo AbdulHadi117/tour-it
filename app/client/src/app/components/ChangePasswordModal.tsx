@@ -18,7 +18,10 @@ interface Rule {
 const RULES: Rule[] = [
   { label: "8+ chars", test: (pw) => pw.length >= 8 },
   { label: "Uppercase", test: (pw) => /[A-Z]/.test(pw) },
-  { label: "Number/Symbol", test: (pw) => /[0-9!@#$%^&*]/.test(pw) },
+  {
+    label: "Number/Symbol",
+    test: (pw) => /[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pw),
+  },
   { label: "Passwords match", test: (pw, c) => pw.length > 0 && pw === c },
 ];
 
