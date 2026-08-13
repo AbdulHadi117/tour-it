@@ -4,11 +4,14 @@ import { requireAuth, requireVerified } from "../../middleware/auth.middleware";
 import {
   loginRateLimiter,
   registerRateLimiter,
-  passwordResetRateLimiter,
-  otlRateLimiter,
-  emailVerificationRateLimiter,
+  passwordResetRequestRateLimiter,
+  passwordResetSubmitRateLimiter,
+  otlRequestRateLimiter,
+  otlLoginRateLimiter,
+  emailVerificationSubmitRateLimiter,
+  emailVerificationResendRateLimiter,
+  emailVerificationResendAuthedRateLimiter,
 } from "../../middleware/rateLimiter";
-
 const router = Router();
 
 // Public
@@ -20,22 +23,47 @@ router.post("/logout", controller.logout);
 // Requires a valid session but NOT a verified email —
 // users need these two routes to check their state and complete verification.
 router.get("/me", requireAuth, controller.me);
-router.post("/verify-email", emailVerificationRateLimiter, controller.verifyEmail);
-router.post("/verify-email/resend", emailVerificationRateLimiter, controller.resendVerificationEmail);
-router.post("/resend-verification", requireAuth, emailVerificationRateLimiter, controller.resendVerificationForCurrentUser);
+router.post(
+  "/verify-email",
+  emailVerificationSubmitRateLimiter,
+  controller.verifyEmail,
+);
+router.post(
+  "/verify-email/resend",
+  emailVerificationResendRateLimiter,
+  controller.resendVerificationEmail,
+);
+router.post(
+  "/resend-verification",
+  requireAuth,
+  emailVerificationResendAuthedRateLimiter,
+  controller.resendVerificationForCurrentUser,
+);
 
 // Requires a valid session AND a verified email.
-router.patch("/update-password", requireAuth, requireVerified, controller.updatePassword);
+router.patch(
+  "/update-password",
+  requireAuth,
+  requireVerified,
+  controller.updatePassword,
+);
 
 // Profile update (requires session, but not necessarily verified email yet depending on rules, let's just require auth)
 router.patch("/profile", requireAuth, controller.updateProfile);
 
 // Password reset (public — user may be locked out)
-router.post("/forgot-password", passwordResetRateLimiter, controller.forgotPassword);
-router.post("/reset-password", passwordResetRateLimiter, controller.resetPassword);
+router.post(
+  "/forgot-password",
+  passwordResetRequestRateLimiter,
+  controller.forgotPassword,
+);
+router.post(
+  "/reset-password",
+  passwordResetSubmitRateLimiter,
+  controller.resetPassword,
+);
 
 // One-time login (magic link)
-router.post("/otl/request", otlRateLimiter, controller.requestOtl);
-router.post("/otl/login", otlRateLimiter, controller.otlLogin);
-
+router.post("/otl/request", otlRequestRateLimiter, controller.requestOtl);
+router.post("/otl/login", otlLoginRateLimiter, controller.otlLogin);
 export default router;

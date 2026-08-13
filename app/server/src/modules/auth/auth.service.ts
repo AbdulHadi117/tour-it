@@ -12,7 +12,11 @@ import {
 import { env } from "../../config/env";
 import { sendEmail } from "../../utils/mailer";
 import { UserRow, SafeUser, toSafeUser } from "./auth.types";
-import { RegisterInput, LoginInput, UpdateProfileInput } from "./auth.validation";
+import {
+  RegisterInput,
+  LoginInput,
+  UpdateProfileInput,
+} from "./auth.validation";
 
 interface RequestMeta {
   userAgent?: string;
@@ -34,16 +38,29 @@ async function getRolesForUser(userId: string): Promise<string[]> {
   return rows.map((r) => r.name);
 }
 
-async function issueTokenPair(userId: string, roles: string[], meta: RequestMeta): Promise<TokenPair> {
+async function issueTokenPair(
+  userId: string,
+  roles: string[],
+  meta: RequestMeta,
+): Promise<TokenPair> {
   const accessToken = signAccessToken({ sub: userId, roles });
   const jti = newTokenId();
   const refreshToken = signRefreshToken({ sub: userId, jti });
-  const expiresAt = new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(
+    Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000,
+  );
 
   await query(
     `INSERT INTO refresh_tokens (id, user_id, token_hash, user_agent, ip, expires_at)
      VALUES ($1, $2, $3, $4, $5, $6)`,
-    [jti, userId, hashToken(refreshToken), meta.userAgent ?? null, meta.ip ?? null, expiresAt],
+    [
+      jti,
+      userId,
+      hashToken(refreshToken),
+      meta.userAgent ?? null,
+      meta.ip ?? null,
+      expiresAt,
+    ],
   );
 
   return { accessToken, refreshToken };
@@ -53,14 +70,19 @@ async function issueTokenPair(userId: string, roles: string[], meta: RequestMeta
 // Email verification
 // ---------------------------------------------------------------------------
 
-export async function sendVerificationEmail(userId: string, email: string): Promise<void> {
+export async function sendVerificationEmail(
+  userId: string,
+  email: string,
+): Promise<void> {
   await query(
     `UPDATE email_verification_tokens SET used_at = now() WHERE user_id = $1 AND used_at IS NULL`,
     [userId],
   );
 
   const token = randomOpaqueToken();
-  const expiresAt = new Date(Date.now() + env.EMAIL_VERIFICATION_TTL_MINUTES * 60 * 1000);
+  const expiresAt = new Date(
+    Date.now() + env.EMAIL_VERIFICATION_TTL_MINUTES * 60 * 1000,
+  );
 
   await query(
     `INSERT INTO email_verification_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
@@ -80,17 +102,29 @@ export async function sendVerificationEmail(userId: string, email: string): Prom
 
 export async function verifyEmail(token: string): Promise<void> {
   const tokenHash = hashToken(token);
-  const row = await queryOne<{ id: string; user_id: string; expires_at: Date; used_at: Date | null }>(
-    `SELECT * FROM email_verification_tokens WHERE token_hash = $1`,
-    [tokenHash],
-  );
+  const row = await queryOne<{
+    id: string;
+    user_id: string;
+    expires_at: Date;
+    used_at: Date | null;
+  }>(`SELECT * FROM email_verification_tokens WHERE token_hash = $1`, [
+    tokenHash,
+  ]);
 
   if (!row || row.used_at || new Date(row.expires_at) < new Date()) {
-    throw AppError.badRequest("This verification link is invalid or has expired");
+    throw AppError.badRequest(
+      "This verification link is invalid or has expired",
+    );
   }
 
-  await query(`UPDATE users SET email_verified_at = now(), updated_at = now() WHERE id = $1`, [row.user_id]);
-  await query(`UPDATE email_verification_tokens SET used_at = now() WHERE id = $1`, [row.id]);
+  await query(
+    `UPDATE users SET email_verified_at = now(), updated_at = now() WHERE id = $1`,
+    [row.user_id],
+  );
+  await query(
+    `UPDATE email_verification_tokens SET used_at = now() WHERE id = $1`,
+    [row.id],
+  );
 }
 
 export async function resendVerificationEmail(email: string): Promise<void> {
@@ -108,7 +142,9 @@ export async function resendVerificationEmail(email: string): Promise<void> {
   await sendVerificationEmail(user.id, user.email);
 }
 
-export async function resendVerificationForCurrentUser(userId: string): Promise<void> {
+export async function resendVerificationForCurrentUser(
+  userId: string,
+): Promise<void> {
   const user = await queryOne<UserRow>(
     `SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL`,
     [userId],
@@ -138,7 +174,13 @@ export async function registerUser(input: RegisterInput): Promise<SafeUser> {
   const passwordHash = await hashPassword(input.password);
   const user = await queryOne<UserRow>(
     `INSERT INTO users (name, email, password_hash, phone, location) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [input.name, input.email, passwordHash, input.phone ?? null, input.location ?? null],
+    [
+      input.name,
+      input.email,
+      passwordHash,
+      input.phone ?? null,
+      input.location ?? null,
+    ],
   );
   if (!user) throw new AppError("Could not create account", 500);
 
@@ -152,7 +194,10 @@ export async function registerUser(input: RegisterInput): Promise<SafeUser> {
   // Fire-and-forget: don't let a mailer failure block the registration response.
   sendVerificationEmail(user.id, user.email).catch((err) => {
     // eslint-disable-next-line no-console
-    console.error("[auth] Failed to send verification email after register:", err);
+    console.error(
+      "[auth] Failed to send verification email after register:",
+      err,
+    );
   });
 
   return toSafeUser(user, ["user"]);
@@ -169,7 +214,8 @@ export async function loginUser(
   // Same generic message whether the email doesn't exist or the password is wrong —
   // this endpoint should never reveal which emails are registered.
   if (!user) throw AppError.unauthorized("Invalid email or password");
-  if (user.status !== "active") throw AppError.forbidden("This account is not active");
+  if (user.status !== "active")
+    throw AppError.forbidden("This account is not active");
 
   const valid = await verifyPassword(input.password, user.password_hash);
   if (!valid) throw AppError.unauthorized("Invalid email or password");
@@ -182,7 +228,10 @@ export async function loginUser(
   return { user: toSafeUser(user, roles), ...tokens };
 }
 
-export async function refreshTokens(refreshToken: string, meta: RequestMeta): Promise<TokenPair> {
+export async function refreshTokens(
+  refreshToken: string,
+  meta: RequestMeta,
+): Promise<TokenPair> {
   let payload;
   try {
     payload = verifyRefreshToken(refreshToken);
@@ -198,36 +247,69 @@ export async function refreshTokens(refreshToken: string, meta: RequestMeta): Pr
     expires_at: Date;
   }>(`SELECT * FROM refresh_tokens WHERE id = $1`, [payload.jti]);
 
-  const isValid =
-    row &&
-    !row.revoked_at &&
-    row.token_hash === hashToken(refreshToken) &&
-    new Date(row.expires_at) > new Date();
+  if (
+    !row ||
+    row.token_hash !== hashToken(refreshToken) ||
+    new Date(row.expires_at) < new Date()
+  ) {
+    throw AppError.unauthorized("Invalid or expired refresh token");
+  }
 
-  if (!row || !isValid) {
+  if (row.revoked_at) {
+    // This exact token was already rotated out. A legitimate client would
+    // have received the NEW pair from that rotation and never present the
+    // old one again — so seeing it now means it leaked (stolen refresh
+    // token, replayed request, etc). Kill every session for this user so
+    // both the attacker and the legitimate user are forced to re-authenticate.
+    await query(
+      `UPDATE refresh_tokens SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL`,
+      [row.user_id],
+    );
     throw AppError.unauthorized("Invalid or expired refresh token");
   }
 
   // Rotate on every use: revoke the presented token, issue a fresh pair.
-  // If a revoked token is ever presented again, that's a strong signal of theft/replay.
-  await query(`UPDATE refresh_tokens SET revoked_at = now() WHERE id = $1`, [row.id]);
+  await query(`UPDATE refresh_tokens SET revoked_at = now() WHERE id = $1`, [
+    row.id,
+  ]);
 
-  const roles = await getRolesForUser(row.user_id);
-  return issueTokenPair(row.user_id, roles, meta);
+  const user = await queryOne<UserRow>(
+    `SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL`,
+    [row.user_id],
+  );
+  if (!user || user.status !== "active") {
+    // Don't just 401 silently — a stolen/replayed token belonging to a
+    // suspended account is exactly the case we want to kill outright.
+    await query(
+      `UPDATE refresh_tokens SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL`,
+      [row.user_id],
+    );
+    throw AppError.forbidden("This account is not active");
+  }
+
+  const roles = await getRolesForUser(user.id);
+  return issueTokenPair(user.id, roles, meta);
 }
 
 export async function logoutUser(refreshToken: string): Promise<void> {
   try {
     const payload = verifyRefreshToken(refreshToken);
-    await query(`UPDATE refresh_tokens SET revoked_at = now() WHERE id = $1`, [payload.jti]);
+    await query(`UPDATE refresh_tokens SET revoked_at = now() WHERE id = $1`, [
+      payload.jti,
+    ]);
   } catch {
     // Already invalid/expired — logging out is a no-op here, not an error.
   }
 }
 
 export async function getMe(userId: string): Promise<SafeUser> {
-  const user = await queryOne<UserRow>(`SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL`, [userId]);
+  const user = await queryOne<UserRow>(
+    `SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL`,
+    [userId],
+  );
   if (!user) throw AppError.notFound("User not found");
+  if (user.status !== "active")
+    throw AppError.forbidden("This account is not active");
   const roles = await getRolesForUser(user.id);
   return toSafeUser(user, roles);
 }
@@ -236,8 +318,14 @@ export async function getMe(userId: string): Promise<SafeUser> {
 // Profile management
 // ---------------------------------------------------------------------------
 
-export async function updateProfile(userId: string, input: UpdateProfileInput): Promise<SafeUser> {
-  const user = await queryOne<UserRow>(`SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL`, [userId]);
+export async function updateProfile(
+  userId: string,
+  input: UpdateProfileInput,
+): Promise<SafeUser> {
+  const user = await queryOne<UserRow>(
+    `SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL`,
+    [userId],
+  );
   if (!user) throw AppError.notFound("User not found");
 
   const fields = [];
@@ -305,7 +393,10 @@ export async function updateProfile(userId: string, input: UpdateProfileInput): 
 // ---------------------------------------------------------------------------
 
 export async function requestPasswordReset(email: string): Promise<void> {
-  const user = await queryOne<UserRow>(`SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL`, [email]);
+  const user = await queryOne<UserRow>(
+    `SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL`,
+    [email],
+  );
   // Resolve the same way whether or not the email exists — this endpoint must not
   // be usable to enumerate registered accounts.
   if (!user) return;
@@ -316,7 +407,9 @@ export async function requestPasswordReset(email: string): Promise<void> {
   );
 
   const token = randomOpaqueToken();
-  const expiresAt = new Date(Date.now() + env.RESET_TOKEN_TTL_MINUTES * 60 * 1000);
+  const expiresAt = new Date(
+    Date.now() + env.RESET_TOKEN_TTL_MINUTES * 60 * 1000,
+  );
 
   await query(
     `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
@@ -334,12 +427,17 @@ export async function requestPasswordReset(email: string): Promise<void> {
   );
 }
 
-export async function resetPassword(token: string, newPassword: string): Promise<void> {
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<void> {
   const tokenHash = hashToken(token);
-  const row = await queryOne<{ id: string; user_id: string; expires_at: Date; used_at: Date | null }>(
-    `SELECT * FROM password_reset_tokens WHERE token_hash = $1`,
-    [tokenHash],
-  );
+  const row = await queryOne<{
+    id: string;
+    user_id: string;
+    expires_at: Date;
+    used_at: Date | null;
+  }>(`SELECT * FROM password_reset_tokens WHERE token_hash = $1`, [tokenHash]);
 
   if (!row || row.used_at || new Date(row.expires_at) < new Date()) {
     throw AppError.badRequest("This reset link is invalid or has expired");
@@ -347,15 +445,19 @@ export async function resetPassword(token: string, newPassword: string): Promise
 
   const passwordHash = await hashPassword(newPassword);
 
-  await query(`UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`, [
-    passwordHash,
-    row.user_id,
-  ]);
-  await query(`UPDATE password_reset_tokens SET used_at = now() WHERE id = $1`, [row.id]);
+  await query(
+    `UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`,
+    [passwordHash, row.user_id],
+  );
+  await query(
+    `UPDATE password_reset_tokens SET used_at = now() WHERE id = $1`,
+    [row.id],
+  );
   // Resetting the password logs the user out everywhere else — the expected security behavior.
-  await query(`UPDATE refresh_tokens SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL`, [
-    row.user_id,
-  ]);
+  await query(
+    `UPDATE refresh_tokens SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL`,
+    [row.user_id],
+  );
 }
 
 export async function updatePassword(
@@ -363,17 +465,26 @@ export async function updatePassword(
   currentPassword: string,
   newPassword: string,
 ): Promise<void> {
-  const user = await queryOne<UserRow>(`SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL`, [userId]);
+  const user = await queryOne<UserRow>(
+    `SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL`,
+    [userId],
+  );
   if (!user) throw AppError.notFound("User not found");
 
   const valid = await verifyPassword(currentPassword, user.password_hash);
   if (!valid) throw AppError.unauthorized("Current password is incorrect");
 
   const passwordHash = await hashPassword(newPassword);
-  await query(`UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`, [passwordHash, userId]);
+  await query(
+    `UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`,
+    [passwordHash, userId],
+  );
 
   // Invalidate all existing sessions so other devices are logged out after a password change.
-  await query(`UPDATE refresh_tokens SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL`, [userId]);
+  await query(
+    `UPDATE refresh_tokens SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL`,
+    [userId],
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -388,10 +499,15 @@ export async function requestOtl(email: string): Promise<void> {
   // Resolve silently if not found — must not enumerate registered emails.
   if (!user) return;
 
-  await query(`UPDATE otl_tokens SET used_at = now() WHERE user_id = $1 AND used_at IS NULL`, [user.id]);
+  await query(
+    `UPDATE otl_tokens SET used_at = now() WHERE user_id = $1 AND used_at IS NULL`,
+    [user.id],
+  );
 
   const token = randomOpaqueToken();
-  const expiresAt = new Date(Date.now() + env.OTL_TOKEN_TTL_MINUTES * 60 * 1000);
+  const expiresAt = new Date(
+    Date.now() + env.OTL_TOKEN_TTL_MINUTES * 60 * 1000,
+  );
 
   await query(
     `INSERT INTO otl_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
@@ -414,10 +530,12 @@ export async function loginWithOtl(
   meta: RequestMeta,
 ): Promise<{ user: SafeUser } & TokenPair> {
   const tokenHash = hashToken(token);
-  const row = await queryOne<{ id: string; user_id: string; expires_at: Date; used_at: Date | null }>(
-    `SELECT * FROM otl_tokens WHERE token_hash = $1`,
-    [tokenHash],
-  );
+  const row = await queryOne<{
+    id: string;
+    user_id: string;
+    expires_at: Date;
+    used_at: Date | null;
+  }>(`SELECT * FROM otl_tokens WHERE token_hash = $1`, [tokenHash]);
 
   if (!row || row.used_at || new Date(row.expires_at) < new Date()) {
     throw AppError.unauthorized("This login link is invalid or has expired");
@@ -435,7 +553,10 @@ export async function loginWithOtl(
 
   // OTL login is a strong proof of email ownership — verify the email if not already done.
   if (!user.email_verified_at) {
-    await query(`UPDATE users SET email_verified_at = now(), updated_at = now() WHERE id = $1`, [user.id]);
+    await query(
+      `UPDATE users SET email_verified_at = now(), updated_at = now() WHERE id = $1`,
+      [user.id],
+    );
     // Invalidate any pending verification tokens since the email is now confirmed.
     await query(
       `UPDATE email_verification_tokens SET used_at = now() WHERE user_id = $1 AND used_at IS NULL`,

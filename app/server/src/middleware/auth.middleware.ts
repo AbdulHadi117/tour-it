@@ -23,7 +23,9 @@ declare global {
 export function requireAuth(req: Request, _res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith("Bearer ")) {
-    return next(AppError.unauthorized("Missing or malformed Authorization header"));
+    return next(
+      AppError.unauthorized("Missing or malformed Authorization header"),
+    );
   }
 
   const token = header.slice("Bearer ".length);
@@ -60,18 +62,32 @@ export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
 // Must always be stacked AFTER requireAuth — it reads req.user.
 // Exceptions: GET /auth/me and POST /auth/verify-email (users need these
 // to check their status and submit a verification token while still unverified).
-export async function requireVerified(req: Request, _res: Response, next: NextFunction) {
+export async function requireVerified(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+) {
   if (!req.user) return next(AppError.unauthorized());
 
   try {
-    const row = await queryOne<{ email_verified_at: Date | null }>(
-      `SELECT email_verified_at FROM users WHERE id = $1 AND deleted_at IS NULL`,
+    const row = await queryOne<{
+      email_verified_at: Date | null;
+      status: string;
+    }>(
+      `SELECT email_verified_at, status FROM users WHERE id = $1 AND deleted_at IS NULL`,
       [req.user.id],
     );
 
-    if (!row || !row.email_verified_at) {
+    if (!row || row.status !== "active") {
+      return next(new AppError("This account is not active", 403));
+    }
+
+    if (!row.email_verified_at) {
       return next(
-        new AppError("Please verify your email address before accessing this resource", 403),
+        new AppError(
+          "Please verify your email address before accessing this resource",
+          403,
+        ),
       );
     }
 
